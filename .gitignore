@@ -1,0 +1,7 @@
+.build/
+build/
+.swiftpm/
+App/TouchLab.xcodeproj/
+Payload/
+*.ipa
+.DS_Store

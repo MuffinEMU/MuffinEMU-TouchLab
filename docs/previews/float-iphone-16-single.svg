@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="852" height="393" viewBox="0 0 852.0 393.0" font-family="-apple-system, Helvetica, sans-serif">
+<rect width="100%" height="100%" fill="#101014"/>
+<rect x="59.0" y="0.0" width="734.0" height="372.0" fill="none" stroke="#2a2a33" stroke-dasharray="6 6"/>
+<rect x="95.3" y="0.0" width="661.3" height="372.0" fill="#23324a"/>
+<text x="426.0" y="186.0" fill="#4d6690" font-size="22" text-anchor="middle">GamePad</text>
+<rect x="95.3" y="0.0" width="661.3" height="372.0" rx="6.0" fill="none" stroke="#4d6690" stroke-width="1.5" opacity="0.12"/>
+<rect x="68.1" y="9.1" width="104.3" height="52.2" rx="10.7" fill="#8d8d99" stroke="#b5b5c0" stroke-width="1.5" opacity="0.9"/>
+<text x="120.2" y="43.0" fill="#111116" font-size="21.9" font-weight="600" text-anchor="middle" opacity="1.0">ZL</text>
+<rect x="183.8" y="9.1" width="104.3" height="52.2" rx="10.7" fill="#8d8d99" stroke="#b5b5c0" stroke-width="1.5" opacity="0.9"/>
+<text x="235.9" y="43.0" fill="#111116" font-size="21.9" font-weight="600" text-anchor="middle" opacity="1.0">L</text>
+<rect x="679.6" y="9.1" width="104.3" height="52.2" rx="10.7" fill="#8d8d99" stroke="#b5b5c0" stroke-width="1.5" opacity="0.9"/>
+<text x="731.8" y="43.0" fill="#111116" font-size="21.9" font-weight="600" text-anchor="middle" opacity="1.0">ZR</text>
+<rect x="563.9" y="9.1" width="104.3" height="52.2" rx="10.7" fill="#8d8d99" stroke="#b5b5c0" stroke-width="1.5" opacity="0.9"/>
+<text x="616.1" y="43.0" fill="#111116" font-size="21.9" font-weight="600" text-anchor="middle" opacity="1.0">R</text>
+<circle cx="367.0" cy="35.2" r="17.5" fill="#6e6e7a" stroke="#9a9aa6" stroke-width="1.5" opacity="0.9"/>
+<text x="367.0" y="40.5" fill="#f2f2f6" font-size="14.7" font-weight="600" text-anchor="middle" opacity="1.0">−</text>
+<circle cx="426.0" cy="35.2" r="17.5" fill="#6e6e7a" stroke="#9a9aa6" stroke-width="1.5" opacity="0.9"/>
+<text x="426.0" y="40.5" fill="#f2f2f6" font-size="14.7" font-weight="600" text-anchor="middle" opacity="1.0">⌂</text>
+<circle cx="485.0" cy="35.2" r="17.5" fill="#6e6e7a" stroke="#9a9aa6" stroke-width="1.5" opacity="0.9"/>
+<text x="485.0" y="40.5" fill="#f2f2f6" font-size="14.7" font-weight="600" text-anchor="middle" opacity="1.0">+</text>
+<rect x="119.9" y="95.8" width="32.7" height="32.7" rx="9.1" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
+<text x="136.2" y="117.0" fill="#24242c" font-size="13.7" font-weight="600" text-anchor="middle" opacity="1.0">▲</text>
+<rect x="119.9" y="171.2" width="32.7" height="32.7" rx="9.1" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
+<text x="136.2" y="192.5" fill="#24242c" font-size="13.7" font-weight="600" text-anchor="middle" opacity="1.0">▼</text>
+<rect x="79.4" y="133.5" width="32.7" height="32.7" rx="9.1" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
+<text x="95.7" y="154.8" fill="#24242c" font-size="13.7" font-weight="600" text-anchor="middle" opacity="1.0">◀</text>
+<rect x="160.4" y="133.5" width="32.7" height="32.7" rx="9.1" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
+<text x="176.8" y="154.8" fill="#24242c" font-size="13.7" font-weight="600" text-anchor="middle" opacity="1.0">▶</text>
+<rect x="59.0" y="225.5" width="308.3" height="146.5" rx="0.0" fill="#7fa8ff" stroke="#7fa8ff" stroke-width="1.5" opacity="0.12"/>
+<circle cx="174.2" cy="304.5" r="79.3" fill="#3a3a44" stroke="#6a6a76" stroke-width="1.5" opacity="0.3"/>
+<circle cx="174.2" cy="304.5" r="26.4" fill="#b8b8c4" stroke="#e0e0ea" stroke-width="1.5" opacity="0.3"/>
+<text x="174.2" y="312.5" fill="#24242c" font-size="22.2" font-weight="600" text-anchor="middle" opacity="0.5">L</text>
+<rect x="484.7" y="77.1" width="308.3" height="294.9" rx="0.0" fill="#7fa8ff" stroke="#7fa8ff" stroke-width="1.5" opacity="0.12"/>
+<circle cx="518.9" cy="204.1" r="79.3" fill="#3a3a44" stroke="#6a6a76" stroke-width="1.5" opacity="0.3"/>
+<circle cx="518.9" cy="204.1" r="26.4" fill="#b8b8c4" stroke="#e0e0ea" stroke-width="1.5" opacity="0.3"/>
+<text x="518.9" y="212.1" fill="#24242c" font-size="22.2" font-weight="600" text-anchor="middle" opacity="0.5">R</text>
+<circle cx="688.6" cy="219.4" r="20.9" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
+<text x="688.6" y="225.7" fill="#24242c" font-size="17.5" font-weight="600" text-anchor="middle" opacity="1.0">X</text>
+<circle cx="636.9" cy="267.6" r="20.9" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
+<text x="636.9" y="273.9" fill="#24242c" font-size="17.5" font-weight="600" text-anchor="middle" opacity="1.0">Y</text>
+<circle cx="740.4" cy="267.6" r="20.9" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
+<text x="740.4" y="273.9" fill="#24242c" font-size="17.5" font-weight="600" text-anchor="middle" opacity="1.0">A</text>
+<circle cx="688.6" cy="315.8" r="20.9" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
+<text x="688.6" y="322.1" fill="#24242c" font-size="17.5" font-weight="600" text-anchor="middle" opacity="1.0">B</text>
+<text x="12" y="383.0" fill="#8888a0" font-size="13">Float - iPhone 16 - single</text>
+</svg>
