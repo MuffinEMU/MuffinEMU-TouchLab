@@ -5,8 +5,9 @@ Adaptive, Frame** — to MuffinEMU. Read all of it before changing anything. The
 files are [`CHECKLIST.md`](CHECKLIST.md) (tick-list for the whole job) and
 [`DEVICE-TEST.md`](DEVICE-TEST.md) (the on-device test script).
 
-Written against `kiddreads/MuffinEMU` **main @ `4c70e7d3`**. If main has moved, every
-anchor below still names the code to find, but re-read each site before editing — the
+First written against `kiddreads/MuffinEMU` **main @ `4c70e7d3`** and verified again
+against **main @ `8de67090`** (every anchor below still held; see "Corrections from the
+first integration" at the end). If main has moved, re-read each site before editing: the
 line numbers here are hints, not addresses.
 
 ---
@@ -90,8 +91,12 @@ something.
 2. **Feature branches do not build on push.** The workflow's `push` trigger only covers
    `main` and `ios27-sdk`. To get a test IPA from your branch, run
    `gh workflow run build-ios-app.yml --ref feature/touchlab-controls`. That run
-   publishes an unnumbered `auto-<sha>` pre-release. Opening a pull request into `main`
-   also builds, but doesn't publish.
+   publishes an unnumbered `auto-<sha>` pre-release (the "Choose the version" step only
+   numbers builds of `main`). **It also moves the rolling `nightly` pre-release to that
+   build**: the "Update the rolling nightly" step runs for every non-PR build by design.
+   Fine for an options-only change whose default is unchanged; know it happens. Opening a
+   pull request into `main` also builds, but publishes nothing (the IPA is only a run
+   artifact).
 3. **Commit identity:** author and committer `kiddreads
    <285094405+kiddreads@users.noreply.github.com>`. **No AI co-author trailers, session
    trailers or "generated with" lines** in any commit, PR, release or file.
@@ -130,15 +135,24 @@ something.
 ### 4.0 Set up
 
 - Check free disk space first (`df -h`). The machine this usually runs on is often nearly
-  full. A MuffinEMU worktree needs several hundred MB. If there isn't room, commit through
+  full. A full MuffinEMU worktree needs several hundred MB; a sparse one (below) is about
+  30 MB. If there isn't room, commit through
   the GitHub API instead of a checkout (a helper for API commits as kiddreads may already
   exist on the machine; otherwise use `gh api` with `git/blobs`, `git/trees`,
   `git/commits` and `git/refs`).
 - Branch from **current** `origin/main` (fetch first; a local clone may be days behind):
   ```
   git fetch origin
-  git worktree add ../muffinemu-touchlab -b feature/touchlab-controls origin/main
+  git worktree add --no-checkout ../mfe-work -b feature/touchlab-controls origin/main
+  cd ../mfe-work
+  git sparse-checkout set --no-cone '/src/ios/' '/.github/' '/docs/docs/controls.html' '/README.md'
+  git checkout
   ```
+  This job only touches those paths, so the sparse checkout is enough. **Don't name the
+  worktree `muffinemu-touchlab`**: macOS volumes are case-insensitive, so that is the same
+  directory as a `MuffinEMU-TouchLab` checkout, `git worktree add` fails, and the
+  `sparse-checkout` that follows is then run inside the TouchLab repo instead. (Undo with
+  `git sparse-checkout disable`.)
 - Set the repo-local identity (rule 3) in that worktree.
 
 ### 4.1 Vendor the package
@@ -180,6 +194,10 @@ and under `targets: MuffinEMU: dependencies:`:
 
 Don't add `Packages/` to `sources:`; it's a package, not app sources.
 
+The project builds with a Swift 6.2+ Xcode on the `xcode-27` runner image, which has
+exactly one (beta) Xcode. The package is Swift tools 5.9 and compiles in Swift 5 mode
+there.
+
 ### 4.2 Add the drop-in file
 
 Copy `integration/MuffinEMU/TouchLabPads.swift` to `src/ios/App/TouchLabPads.swift`
@@ -197,7 +215,18 @@ declarations (`integration/MuffinEMU/compile-check/`). If it doesn't compile in 
 a real declaration has drifted from its stub. Fix the drop-in to match the real code, then
 update the stub in TouchLab too.
 
-This must be the **only** file that imports `TouchLabCore`/`TouchLabUI`.
+This must be the **only** file that imports `TouchLabCore`/`TouchLabUI`. It also holds the
+small helpers the rest of the app uses instead of importing (see 4.4): `touchLabTVScreen()`,
+`touchLabGamePadScreen()`, `trackTouchLabScreens(_:imageIsAspectFit:)`, the
+`TouchLabScreenState` typealias, `TouchLabSettings.styles` / `summary(_:)` /
+`cameraOptions` / `resetAdaptiveAll()`.
+
+**Concurrency.** `PadDiagnostics` (and `UIScreen`) are main-actor isolated in the real app,
+while `PadOutput` is not. The output therefore sends its diagnostics through
+`Task { @MainActor in ... }` and reads a cached `renderScale` instead of `UIScreen.main`;
+the bridge calls themselves stay direct and synchronous. The compile-check stub must carry
+`@MainActor` on `PadDiagnostics` like the real one, or this class of error can't be caught
+in CI. (It didn't at first.)
 
 ### 4.3 `PadDiagnostics.swift`
 
@@ -224,9 +253,8 @@ never claims the wrong pad is live.
 @State private var topBarHeight: CGFloat = 0
 ```
 
-(`TouchLabScreens` comes from `TouchLabUI`. If the "only file that imports" rule matters
-to you, add a `typealias` or a small wrapper in `TouchLabPads.swift` and use that here.
-Either way, keep the imports in one place.)
+(The state's type is `TouchLabScreenState`, a typealias in `TouchLabPads.swift`, so this
+file needs no import.)
 
 **b) `PadSystem`.** Add `case touchLab`. Precedence in `padSystem`:
 **Melo-Controller › TouchLab › preview › MuffinEMU**:
@@ -252,13 +280,15 @@ without a pad.
   `MetalViewIOS(...)` there also gets `.touchLabScreenFrame(.tv)` (its `padScreen` is
   already covered).
 
-Then on `screenLayoutComposition`'s `GeometryReader` (outermost), add:
+In the tagging steps above use the drop-in's helpers: `.touchLabTVScreen()` and
+`.touchLabGamePadScreen()` (they are `touchLabScreenFrame(.tv)` / `(.gamepad)`). In the
+`smallGamePadTopRight` branch put the modifier **after** `.frame(...)` so it measures the
+final frame.
+
+Then on `screenLayoutComposition` itself (after its `.ignoresSafeArea`), add:
 
 ```swift
-.onPreferenceChange(TouchLabScreenFramesKey.self) { frames in
-    let next = TouchLabScreens(frames: frames)
-    if next != touchLabScreens { touchLabScreens = next }
-}
+.trackTouchLabScreens($touchLabScreens, imageIsAspectFit: { !FrameStretch.isEnabled })
 ```
 
 Frames are in window coordinates; `TouchPad(rectSpace: .window)` converts them.
@@ -266,19 +296,23 @@ Frames are in window coordinates; `TouchPad(rectSpace: .window)` converts them.
 That's deliberate: `sendPadTouch` maps a touch as a position inside that view's size times
 `effectiveRenderScale`, and the adapter does the same, so both touch paths agree exactly.
 
-**Verify one thing in the renderer before relying on Frame:** does `MetalLayerView` show
-the 16:9 image aspect-fit inside its view (letterboxed) or stretched to fill? Check
-`DisplayRouter.swift` / the layer's `contentsGravity` and the drawable-size logic.
-`TouchLabScreens(frames:imageIsAspectFit:)` defaults to aspect-fit. If the image fills the
-view, pass `imageIsAspectFit: false`. This only changes what Frame avoids covering; input
-is unaffected.
+**Renderer (checked):** the core letterboxes the 16:9 image (`fullscreen_scaling =
+kKeepAspectRatio`) unless Settings > Graphics > "Frame stretching" is on
+(`FrameStretch.isEnabled`, key `muffin.render.stretchToFit`), which fills the view.
+Hence `imageIsAspectFit: { !FrameStretch.isEnabled }` above. It is read when the screen
+layout changes, so toggling it takes effect at the next layout change. This only changes
+what Frame avoids covering; input is unaffected.
 
 **d) Top bar height.** The pads are mounted **above** the top bar in the ZStack, and
 TouchLab places shoulders in the top corners, where the Back button is. Measure the top
-bar instead of hard-coding it: wrap the top-bar `HStack` (the one holding Back / pause /
-hide-controls) in a `GeometryReader` background that writes its `maxY` (global) into
-`topBarHeight` through a small `PreferenceKey`, using the same pattern as
-`touchLabScreenFrame`. Pass it to the overlay as `topInset`. The layouts then keep every
+bar instead of hard-coding it: `.reportTopBarBottom()` (in `App/TouchLabTopBar.swift`, a
+small `PreferenceKey` with the same pattern as `touchLabScreenFrame`, no package import) on
+the top-bar `HStack` after its `.padding(12).background(...).borderBottom(...)`, and
+`.onPreferenceChange(TopBarBottomKey.self)` on the enclosing top-aligned `VStack`, writing
+`topBarHeight` only when it changed. Measure the `HStack`, not the `VStack`: the `VStack`
+is framed to fill the screen. Pass it to the overlay as `topInset`. (In landscape the
+safe-area top is 0 on every device, so the inset is not double counted; in portrait it can
+be, which only makes the controls sit slightly lower.) The layouts then keep every
 control below it. With `topInset` wrong, the symptom is "Back / pause don't respond with
 Zone or Float".
 
@@ -321,6 +355,9 @@ MuffinEMU's pad (look for `if isEditingControlLayout, useMeloControls {` and the
 following `} else if isEditingControlLayout {`). Add a TouchLab branch **before** the
 generic one, matching the panel's existing look and dismiss behaviour. It contains:
 
+(This is `TouchLabLayoutPanel` in `App/TouchLabControlsUI.swift`; ContentView only
+mounts it, with `else if isEditingControlLayout, padSystem == .touchLab`.)
+
 - **Control style** picker: MuffinEMU / Zone / Float / Adaptive / Frame. It writes
   `touchLabScheme`; picking "MuffinEMU" writes `""`. Changing style releases inputs via
   the pad's own teardown.
@@ -355,16 +392,27 @@ Add a **Control style** picker at the top of the section:
 - Rows that only apply to MuffinEMU's own pad (joystick mode, comfort controls, the
   per-control editor) are hidden or disabled while a TouchLab style is selected. Size,
   opacity, haptics, deadzone, curve and gate stay, because TouchLab reads them.
-- Float's camera option and Adaptive's reset button, as in the in-game panel.
+- The stick rows (gate, deadzone, fine control) are shown for TouchLab styles even with
+  "Add analog sticks" off, because TouchLab always has sticks and reads the same keys.
+  "Add analog sticks" and "Comfort controls" are hidden.
+- Float's camera option and Adaptive's reset button, as in the in-game panel. Adaptive's
+  button in Settings resets every game (no game is open there); the in-game panel resets
+  the current game. The rows are `TouchLabStyleSettingsRows` in
+  `App/TouchLabControlsUI.swift`, placed first in the section.
+- The picker labels come from `touchLabStyleLabel`, which marks whichever style
+  `TouchLabSettings.defaultScheme` names as "(default)", so promotion (§9) relabels itself.
 - Keep `MeloControlsSetting` and the preview toggle exactly as they are.
 
 ### 4.7 CI
 
-In `.github/workflows/build-ios-app.yml`, before the Xcode app build, add:
+In `.github/workflows/build-ios-app.yml`, after "Select full Xcode and install build
+tools" and before the long core build, add:
 
 ```yaml
       - name: TouchLab behaviour and layout checks
-        run: swift run --package-path src/ios/Packages/MuffinTouchLab touchlab-check
+        run: |
+          swift run --package-path src/ios/Packages/MuffinTouchLab \
+            --scratch-path "$RUNNER_TEMP/touchlab-build" touchlab-check
 ```
 
 It runs on the macOS runner in seconds and fails the build on any layout or input
@@ -470,8 +518,32 @@ instead.
   Zone's layout. That's intended.
 - Everything is compile- and logic-checked. The on-device test is the real proof.
 - Build coverage: TouchLab's CI builds the package, the bench app and the drop-in with
-  Xcode 16.4 (iOS 18 SDK) and Xcode 26.3 (iOS 26 SDK), deployment target iOS 15. No iOS 27
-  SDK was available on the runners when this was written. MuffinEMU's `ios27-sdk` branch is
-  the first place it'll be built against one. The package uses only long-stable UIKit /
+  Xcode 16.4 (iOS 18 SDK) and Xcode 26.3 (iOS 26 SDK), deployment target iOS 15. The
+  MuffinEMU workflow builds the app on the `xcode-27` image, so a MuffinEMU build is the
+  first compile against the iOS 27 SDK. The package uses only long-stable UIKit /
   SwiftUI API (nothing newer than iOS 15, nothing deprecated), so no source changes are
-  expected there, but check that build's log for warnings.
+  expected, but check that build's log for warnings.
+
+
+---
+
+## 11. Corrections from the first integration
+
+Things the first real integration (against main @ `8de67090`) found that the guide had
+wrong or didn't say, all folded into the sections above:
+
+- The worktree directory name collided with the TouchLab checkout on a case-insensitive
+  volume (4.0).
+- A sparse worktree is enough and is ~30 MB (4.0).
+- Branch builds also move the rolling `nightly` pre-release (3, rule 2).
+- `PadDiagnostics` and `UIScreen` are main-actor isolated; the compile-check stub wasn't, so
+  it missed a real-app compile error. Stub and drop-in fixed (4.2).
+- ContentView can't use package types without importing them, so the drop-in carries
+  wrappers (4.2, 4.4c).
+- The renderer is aspect-fit unless "Frame stretching" is on; `imageIsAspectFit` follows it
+  (4.4c).
+- Settings hid the stick gate, deadzone and curve unless "Add analog sticks" was on, which
+  would have hidden settings TouchLab reads (4.6).
+- The CI step belongs after the Xcode select step, with a scratch path (4.7).
+- The in-game top bar is a `VStack` framed to the whole screen; measure the inner `HStack`
+  (4.4d).
