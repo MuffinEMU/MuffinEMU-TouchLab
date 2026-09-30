@@ -221,12 +221,18 @@ small helpers the rest of the app uses instead of importing (see 4.4): `touchLab
 `TouchLabScreenState` wrapper struct, `TouchLabSettings.styles` / `summary(_:)` /
 `cameraOptions` / `resetAdaptiveAll()`.
 
-**Concurrency.** `PadDiagnostics` (and `UIScreen`) are main-actor isolated in the real app,
-while `PadOutput` is not. The output therefore sends its diagnostics through
-`Task { @MainActor in ... }` and reads a cached `renderScale` instead of `UIScreen.main`;
-the bridge calls themselves stay direct and synchronous. The compile-check stub must carry
-`@MainActor` on `PadDiagnostics` like the real one, or this class of error can't be caught
-in CI. (It didn't at first.)
+**Concurrency.** `PadDiagnostics`, `DisplayRouter` and `UIScreen` are main-actor isolated
+in the real app, while `PadOutput` is not. `CemuBridgePadOutput` is therefore `@MainActor` and
+conforms with `@preconcurrency PadOutput`, so it can call them directly and synchronously
+(every call comes from the pad view's touch handlers and lifecycle observers, all on the
+main thread). The compile-check stubs must carry `@MainActor` on each of these like the real
+declarations, or this class of error can't be caught in CI. (They didn't at first.)
+
+**GamePad touch scale.** The GamePad surface is sized at `DisplayRouter.shared.padSurfaceScale`
+(capped by `PadSurfaceScale`; neither the screen scale nor the TV's render scale), and
+MuffinEMU's own `sendPadTouch` multiplies by exactly that. `setTouchscreen` reads it live on
+every touch. Never cache it, and never use `UIScreen.main.effectiveRenderScale` for this: it
+was tried, and on any device where the surface is capped, touches land off-target.
 
 ### 4.3 `PadDiagnostics.swift`
 
@@ -532,6 +538,8 @@ instead.
 Things the first real integration (against main @ `8de67090`) found that the guide had
 wrong or didn't say, all folded into the sections above:
 
+- GamePad touches must be scaled by `DisplayRouter.shared.padSurfaceScale`, read live, not a
+  cached screen/render scale (4.2). The first drop-in cached `effectiveRenderScale`.
 - The worktree directory name collided with the TouchLab checkout on a case-insensitive
   volume (4.0).
 - A sparse worktree is enough and is ~30 MB (4.0).

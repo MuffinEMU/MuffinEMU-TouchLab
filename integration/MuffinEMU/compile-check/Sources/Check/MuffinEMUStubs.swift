@@ -1,4 +1,4 @@
-// Stubs with the SAME shapes as MuffinEMU's real declarations (main @ 8de67090). If
+// Stubs with the SAME shapes as MuffinEMU's real declarations (release/v6.4 @ 4e7223af). If
 // MuffinEMU changes one of these, update the stub to match - it is the contract the
 // drop-in file is compiled against.
 import SwiftUI
@@ -64,6 +64,15 @@ final class PadDiagnostics: ObservableObject {
     static let shared = PadDiagnostics()
     func recordInput(_ label: String, _ pressed: Bool) {}
     func recordStick(_ stick: Int, _ position: CGPoint) {}
+}
+
+// src/ios/App/DisplayRouter.swift
+@MainActor
+final class DisplayRouter: ObservableObject {
+    static let shared = DisplayRouter()
+    /// The scale the GamePad surface was last sized at (PadSurfaceScale), which GamePad touches are
+    /// multiplied by.
+    private(set) var padSurfaceScale: Double = 1.0
 }
 
 // src/ios/App/RenderScale.swift
