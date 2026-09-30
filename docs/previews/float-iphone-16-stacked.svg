@@ -29,13 +29,7 @@
 <rect x="160.4" y="133.5" width="32.7" height="32.7" rx="9.1" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
 <text x="176.8" y="154.8" fill="#24242c" font-size="13.7" font-weight="600" text-anchor="middle" opacity="1.0">▶</text>
 <rect x="59.0" y="225.5" width="308.3" height="146.5" rx="0.0" fill="#7fa8ff" stroke="#7fa8ff" stroke-width="1.5" opacity="0.12"/>
-<circle cx="174.2" cy="304.5" r="79.3" fill="#3a3a44" stroke="#6a6a76" stroke-width="1.5" opacity="0.3"/>
-<circle cx="174.2" cy="304.5" r="26.4" fill="#b8b8c4" stroke="#e0e0ea" stroke-width="1.5" opacity="0.3"/>
-<text x="174.2" y="312.5" fill="#24242c" font-size="22.2" font-weight="600" text-anchor="middle" opacity="0.5">L</text>
 <rect x="484.7" y="77.1" width="308.3" height="294.9" rx="0.0" fill="#7fa8ff" stroke="#7fa8ff" stroke-width="1.5" opacity="0.12"/>
-<circle cx="518.9" cy="204.1" r="79.3" fill="#3a3a44" stroke="#6a6a76" stroke-width="1.5" opacity="0.3"/>
-<circle cx="518.9" cy="204.1" r="26.4" fill="#b8b8c4" stroke="#e0e0ea" stroke-width="1.5" opacity="0.3"/>
-<text x="518.9" y="212.1" fill="#24242c" font-size="22.2" font-weight="600" text-anchor="middle" opacity="0.5">R</text>
 <circle cx="688.6" cy="219.4" r="20.9" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
 <text x="688.6" y="225.7" fill="#24242c" font-size="17.5" font-weight="600" text-anchor="middle" opacity="1.0">X</text>
 <circle cx="636.9" cy="267.6" r="20.9" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>

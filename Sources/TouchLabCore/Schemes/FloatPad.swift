@@ -33,6 +33,20 @@ public final class FloatPad: ControlScheme {
         super.init(info: Self.schemeInfo)
     }
 
+    /// Floating sticks draw only the knob under the thumb while it is down, and nothing
+    /// at all while idle. A resting ghost and a ring that jumps to wherever the thumb
+    /// lands are both noise - the stick is wherever you put your thumb, so there is
+    /// nothing to show until you do.
+    override public func render(pressed: Set<PadButton>, sticks: [PadStick: StickValue]) -> [RenderElement] {
+        super.render(pressed: pressed, sticks: sticks).filter { e in
+            switch e.role {
+            case .stickBase: return false
+            case .stickKnob: return !e.ghost
+            default: return true
+            }
+        }
+    }
+
     override public func makeControls(_ ctx: LayoutContext) -> [PadControl] {
         let s = ctx.safeBounds
         let u = min(ctx.unit, s.height / 8.2)

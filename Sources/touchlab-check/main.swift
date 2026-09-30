@@ -198,6 +198,9 @@ do {
     let landing = ts.contains(p) ? CGPoint(x: box.minX + 20, y: box.maxY - 5) : p
     e.began(1, at: landing, time: 0)
     check(r.sticks[.left] == nil || r.sticks[.left] == .zero, "float: stick is centred under the thumb on landing")
+    let drawn = e.render()
+    check(!drawn.contains { $0.role == .stickBase }, "float: no stick ring is drawn")
+    check(drawn.filter { $0.role == .stickKnob }.count == 1, "float: only the active knob is drawn")
     e.moved(1, to: landing + CGPoint(x: 300, y: 0), time: 0.1)
     check((r.sticks[.left]?.x ?? 0) > 0.9, "float: drag right = full right, got \(String(describing: r.sticks[.left]))")
     e.moved(1, to: landing + CGPoint(x: 150, y: 0), time: 0.2)
@@ -211,6 +214,7 @@ do {
     check(r.held.contains(.stickL), "float: tap then tap-and-hold = L3, got \(r.held)")
     e.ended(1, at: landing, time: 0.9)
     check(r.held.isEmpty, "float: L3 released")
+    check(!e.render().contains { $0.role == .stickBase || $0.role == .stickKnob }, "float: nothing drawn for idle sticks")
 }
 
 do {
