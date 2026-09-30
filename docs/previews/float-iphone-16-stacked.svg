@@ -20,23 +20,23 @@
 <text x="426.0" y="40.5" fill="#f2f2f6" font-size="14.7" font-weight="600" text-anchor="middle" opacity="1.0">⌂</text>
 <circle cx="485.0" cy="35.2" r="17.5" fill="#6e6e7a" stroke="#9a9aa6" stroke-width="1.5" opacity="0.9"/>
 <text x="485.0" y="40.5" fill="#f2f2f6" font-size="14.7" font-weight="600" text-anchor="middle" opacity="1.0">+</text>
-<rect x="119.9" y="95.8" width="32.7" height="32.7" rx="9.1" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
-<text x="136.2" y="117.0" fill="#24242c" font-size="13.7" font-weight="600" text-anchor="middle" opacity="1.0">▲</text>
-<rect x="119.9" y="171.2" width="32.7" height="32.7" rx="9.1" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
-<text x="136.2" y="192.5" fill="#24242c" font-size="13.7" font-weight="600" text-anchor="middle" opacity="1.0">▼</text>
+<rect x="119.9" y="93.0" width="32.7" height="32.7" rx="9.1" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
+<text x="136.2" y="114.3" fill="#24242c" font-size="13.7" font-weight="600" text-anchor="middle" opacity="1.0">▲</text>
+<rect x="119.9" y="174.0" width="32.7" height="32.7" rx="9.1" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
+<text x="136.2" y="195.3" fill="#24242c" font-size="13.7" font-weight="600" text-anchor="middle" opacity="1.0">▼</text>
 <rect x="79.4" y="133.5" width="32.7" height="32.7" rx="9.1" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
 <text x="95.7" y="154.8" fill="#24242c" font-size="13.7" font-weight="600" text-anchor="middle" opacity="1.0">◀</text>
 <rect x="160.4" y="133.5" width="32.7" height="32.7" rx="9.1" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
 <text x="176.8" y="154.8" fill="#24242c" font-size="13.7" font-weight="600" text-anchor="middle" opacity="1.0">▶</text>
 <rect x="59.0" y="225.5" width="308.3" height="146.5" rx="0.0" fill="#7fa8ff" stroke="#7fa8ff" stroke-width="1.5" opacity="0.12"/>
 <rect x="484.7" y="77.1" width="308.3" height="294.9" rx="0.0" fill="#7fa8ff" stroke="#7fa8ff" stroke-width="1.5" opacity="0.12"/>
-<circle cx="688.6" cy="219.4" r="20.9" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
-<text x="688.6" y="225.7" fill="#24242c" font-size="17.5" font-weight="600" text-anchor="middle" opacity="1.0">X</text>
+<circle cx="688.6" cy="215.9" r="20.9" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
+<text x="688.6" y="222.2" fill="#24242c" font-size="17.5" font-weight="600" text-anchor="middle" opacity="1.0">X</text>
 <circle cx="636.9" cy="267.6" r="20.9" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
 <text x="636.9" y="273.9" fill="#24242c" font-size="17.5" font-weight="600" text-anchor="middle" opacity="1.0">Y</text>
 <circle cx="740.4" cy="267.6" r="20.9" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
 <text x="740.4" y="273.9" fill="#24242c" font-size="17.5" font-weight="600" text-anchor="middle" opacity="1.0">A</text>
-<circle cx="688.6" cy="315.8" r="20.9" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
-<text x="688.6" y="322.1" fill="#24242c" font-size="17.5" font-weight="600" text-anchor="middle" opacity="1.0">B</text>
+<circle cx="688.6" cy="319.4" r="20.9" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
+<text x="688.6" y="325.7" fill="#24242c" font-size="17.5" font-weight="600" text-anchor="middle" opacity="1.0">B</text>
 <text x="12" y="383.0" fill="#8888a0" font-size="13">Float - iPhone 16 - stacked</text>
 </svg>

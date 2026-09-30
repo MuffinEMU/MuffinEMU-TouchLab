@@ -5,8 +5,11 @@ import CoreGraphics
 /// pad (ControllerGeometry) - cross spacing, stick size, shoulder and system-button sizes.
 /// Schemes decide WHERE clusters go; these decide what a cluster is.
 public enum PadParts {
+    /// Centre-to-button spacing of the d-pad and A/B/X/Y, the same both ways. The
+    /// reference pad measured 1.240 across but 1.155 down; the real GamePad's clusters
+    /// are even, so both use the wider spacing (keeping buttons no closer together).
     public static let crossX: CGFloat = 1.240
-    public static let crossY: CGFloat = 1.155
+    public static let crossY: CGFloat = crossX
     public static let dotDiameter: CGFloat = 0.706
     public static let systemDiameter: CGFloat = 0.773
     public static let shoulderSize = CGSize(width: 1.151, height: 0.874)

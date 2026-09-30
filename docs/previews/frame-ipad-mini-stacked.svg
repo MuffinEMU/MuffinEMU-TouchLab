@@ -13,10 +13,10 @@
 <circle cx="127.7" cy="254.1" r="110.6" fill="#3a3a44" stroke="#6a6a76" stroke-width="1.5" opacity="0.9"/>
 <circle cx="127.7" cy="254.1" r="41.4" fill="#b8b8c4" stroke="#e0e0ea" stroke-width="1.5" opacity="0.9"/>
 <text x="127.7" y="263.5" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">L</text>
-<rect x="98.0" y="405.1" width="59.4" height="59.4" rx="16.6" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
-<text x="127.7" y="443.8" fill="#24242c" font-size="24.9" font-weight="600" text-anchor="middle" opacity="1.0">▲</text>
-<rect x="98.0" y="542.3" width="59.4" height="59.4" rx="16.6" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
-<text x="127.7" y="581.0" fill="#24242c" font-size="24.9" font-weight="600" text-anchor="middle" opacity="1.0">▼</text>
+<rect x="98.0" y="400.0" width="59.4" height="59.4" rx="16.6" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
+<text x="127.7" y="438.7" fill="#24242c" font-size="24.9" font-weight="600" text-anchor="middle" opacity="1.0">▲</text>
+<rect x="98.0" y="547.3" width="59.4" height="59.4" rx="16.6" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
+<text x="127.7" y="586.0" fill="#24242c" font-size="24.9" font-weight="600" text-anchor="middle" opacity="1.0">▼</text>
 <rect x="24.4" y="473.7" width="59.4" height="59.4" rx="16.6" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
 <text x="54.0" y="512.4" fill="#24242c" font-size="24.9" font-weight="600" text-anchor="middle" opacity="1.0">◀</text>
 <rect x="171.6" y="473.7" width="59.4" height="59.4" rx="16.6" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
@@ -34,13 +34,13 @@
 <text x="969.7" y="674.1" fill="#f2f2f6" font-size="19.3" font-weight="600" text-anchor="middle" opacity="1.0">+</text>
 <circle cx="1040.9" cy="667.1" r="23.0" fill="#6e6e7a" stroke="#9a9aa6" stroke-width="1.5" opacity="0.9"/>
 <text x="1040.9" y="674.1" fill="#f2f2f6" font-size="19.3" font-weight="600" text-anchor="middle" opacity="1.0">⌂</text>
-<circle cx="1005.3" cy="434.8" r="29.7" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
-<text x="1005.3" y="443.8" fill="#24242c" font-size="24.9" font-weight="600" text-anchor="middle" opacity="1.0">X</text>
+<circle cx="1005.3" cy="429.7" r="29.7" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
+<text x="1005.3" y="438.7" fill="#24242c" font-size="24.9" font-weight="600" text-anchor="middle" opacity="1.0">X</text>
 <circle cx="931.7" cy="503.4" r="29.7" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
 <text x="931.7" y="512.4" fill="#24242c" font-size="24.9" font-weight="600" text-anchor="middle" opacity="1.0">Y</text>
 <circle cx="1079.0" cy="503.4" r="29.7" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
 <text x="1079.0" y="512.4" fill="#24242c" font-size="24.9" font-weight="600" text-anchor="middle" opacity="1.0">A</text>
-<circle cx="1005.3" cy="572.0" r="29.7" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
-<text x="1005.3" y="581.0" fill="#24242c" font-size="24.9" font-weight="600" text-anchor="middle" opacity="1.0">B</text>
+<circle cx="1005.3" cy="577.0" r="29.7" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
+<text x="1005.3" y="586.0" fill="#24242c" font-size="24.9" font-weight="600" text-anchor="middle" opacity="1.0">B</text>
 <text x="12" y="734.0" fill="#8888a0" font-size="13">Frame - iPad mini - stacked (columns)</text>
 </svg>

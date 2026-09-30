@@ -18,10 +18,10 @@
 <circle cx="985.9" cy="330.2" r="125.3" fill="#3a3a44" stroke="#6a6a76" stroke-width="1.5" opacity="0.9"/>
 <circle cx="985.9" cy="330.2" r="41.4" fill="#b8b8c4" stroke="#e0e0ea" stroke-width="1.5" opacity="0.9"/>
 <text x="985.9" y="339.5" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">R</text>
-<rect x="150.5" y="515.6" width="72.0" height="72.0" rx="20.2" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
-<text x="186.5" y="560.9" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">▲</text>
-<rect x="150.5" y="681.9" width="72.0" height="72.0" rx="20.2" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
-<text x="186.5" y="727.2" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">▼</text>
+<rect x="150.5" y="509.4" width="72.0" height="72.0" rx="20.2" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
+<text x="186.5" y="554.8" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">▲</text>
+<rect x="150.5" y="688.0" width="72.0" height="72.0" rx="20.2" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
+<text x="186.5" y="733.4" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">▼</text>
 <rect x="61.2" y="598.7" width="72.0" height="72.0" rx="20.2" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
 <text x="97.2" y="644.1" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">◀</text>
 <rect x="239.8" y="598.7" width="72.0" height="72.0" rx="20.2" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
@@ -33,14 +33,14 @@
 <text x="838.1" y="569.3" fill="#f2f2f6" font-size="23.4" font-weight="600" text-anchor="middle" opacity="1.0">+</text>
 <circle cx="597.0" cy="770.8" r="27.8" fill="#6e6e7a" stroke="#9a9aa6" stroke-width="1.5" opacity="0.9"/>
 <text x="597.0" y="779.2" fill="#f2f2f6" font-size="23.4" font-weight="600" text-anchor="middle" opacity="1.0">⌂</text>
-<circle cx="1007.5" cy="551.6" r="36.0" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
-<text x="1007.5" y="560.9" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">X</text>
+<circle cx="1007.5" cy="545.4" r="36.0" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
+<text x="1007.5" y="554.8" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">X</text>
 <circle cx="918.2" cy="634.7" r="36.0" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
 <text x="918.2" y="644.1" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">Y</text>
 <circle cx="1096.8" cy="634.7" r="36.0" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
 <text x="1096.8" y="644.1" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">A</text>
-<circle cx="1007.5" cy="717.9" r="36.0" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
-<text x="1007.5" y="727.2" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">B</text>
+<circle cx="1007.5" cy="724.0" r="36.0" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
+<text x="1007.5" y="733.4" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">B</text>
 <circle cx="1007.5" cy="634.7" r="25.4" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.9"/>
 <text x="1007.5" y="642.4" fill="#e0e0e8" font-size="21.3" font-weight="600" text-anchor="middle" opacity="1.0">R3</text>
 <text x="12" y="824.0" fill="#8888a0" font-size="13">Zone - iPad Pro 11 (A12Z) - single</text>
