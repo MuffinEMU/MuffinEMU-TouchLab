@@ -38,7 +38,10 @@ jobs:
           zip -qry TouchLab.ipa Payload
           ls -l TouchLab.ipa
 
+      # The account's artifact storage is shared and often full; the release below is the
+      # real delivery, so a failed upload here must not fail the build.
       - uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: TouchLab-ipa
           path: TouchLab.ipa
