@@ -2,7 +2,7 @@
 //
 // Everything MuffinEMU needs to offer the TouchLab control styles (Zone, Float, Adaptive,
 // Frame) alongside its own pad and Melo-Controller. Written against kiddreads/MuffinEMU
-// main @ 4c70e7d3; see integration/INTEGRATION.md for the ContentView / Settings /
+// main @ 8de67090; see integration/INTEGRATION.md for the ContentView / Settings /
 // PadDiagnostics edits that wire it in.
 //
 // This is the only file that imports TouchLabCore / TouchLabUI. Keeping the imports here
@@ -52,6 +52,39 @@ enum TouchLabSettings {
         d.removeObject(forKey: adaptiveKey(gameID: gameID))
         d.set(d.integer(forKey: adaptiveResetKey) &+ 1, forKey: adaptiveResetKey)
     }
+
+    /// Clears Adaptive's learning for every game (for Settings, where no game is open).
+    static func resetAdaptiveAll() {
+        let d = UserDefaults.standard
+        let prefix = adaptiveKey(gameID: "")
+        for key in d.dictionaryRepresentation().keys where key.hasPrefix(prefix) && key != adaptiveResetKey {
+            d.removeObject(forKey: key)
+        }
+        d.set(d.integer(forKey: adaptiveResetKey) &+ 1, forKey: adaptiveResetKey)
+    }
+
+    /// A style as a picker shows it, so the Settings and layout-panel UI needn't import
+    /// the package.
+    struct Style: Identifiable {
+        let id: String
+        let name: String
+        let summary: String
+    }
+
+    static let styles: [Style] = schemes.map { Style(id: $0.id, name: $0.name, summary: $0.summary) }
+
+    static func summary(_ id: String) -> String {
+        styles.first { $0.id == id }?.summary ?? ""
+    }
+
+    static let floatStyleID = FloatPad.schemeInfo.id
+    static let adaptiveStyleID = AdaptivePad.schemeInfo.id
+
+    /// Float's right-hand side options: stored value and label.
+    static let cameraOptions: [(value: String, title: String)] = [
+        (FloatPad.Camera.stick.rawValue, "Floating stick"),
+        (FloatPad.Camera.swipe.rawValue, "Swipe"),
+    ]
 }
 
 /// The TouchLab pad's output, straight onto the bridge.
@@ -71,15 +104,24 @@ final class CemuBridgePadOutput: PadOutput {
     /// layout changes. Touches are sent the way padScreen's own DragGesture sends them:
     /// a position inside that view, times the effective render scale.
     var gamepadViewSize: CGSize = .zero
+    /// `UIScreen.main.effectiveRenderScale`, captured by TouchLabPadOverlay at the same
+    /// moments. Read here instead of asking UIScreen, which is main-actor isolated and this
+    /// class is not (PadOutput isn't).
+    var renderScale: Double = 1
 
+    // PadDiagnostics is main-actor isolated. The bridge calls below are made directly and
+    // synchronously - they are the input - while the diagnostics write hops to the main
+    // actor, so it can never delay or reorder a press.
     func setButton(_ button: PadButton, pressed: Bool) {
-        PadDiagnostics.shared.recordInput(Self.label(button), pressed)
+        let label = Self.label(button)
+        Task { @MainActor in PadDiagnostics.shared.recordInput(label, pressed) }
         cemu_bridge_set_button_state(Self.bridgeButton(button), pressed)
     }
 
     func setStick(_ stick: PadStick, _ value: StickValue) {
         // StickValue is already the console's convention (+y up) - no negation here.
-        PadDiagnostics.shared.recordStick(stick.rawValue, CGPoint(x: value.x, y: value.y))
+        let index = stick.rawValue, position = CGPoint(x: value.x, y: value.y)
+        Task { @MainActor in PadDiagnostics.shared.recordStick(index, position) }
         cemu_bridge_set_stick_axis(stick == .left ? CEMU_BRIDGE_STICK_LEFT : CEMU_BRIDGE_STICK_RIGHT,
                                    Float(value.x), Float(value.y))
     }
@@ -89,9 +131,8 @@ final class CemuBridgePadOutput: PadOutput {
             cemu_bridge_set_pad_touch(0, 0, false)
             return
         }
-        let scale = UIScreen.main.effectiveRenderScale
-        cemu_bridge_set_pad_touch(Double(point.x * gamepadViewSize.width) * scale,
-                                  Double(point.y * gamepadViewSize.height) * scale, true)
+        cemu_bridge_set_pad_touch(Double(point.x * gamepadViewSize.width) * renderScale,
+                                  Double(point.y * gamepadViewSize.height) * renderScale, true)
     }
 
     func releaseAll() {
@@ -203,6 +244,7 @@ struct TouchLabPadOverlay: View {
 
     private func syncGamepadSize() {
         CemuBridgePadOutput.shared.gamepadViewSize = screens.touchscreenRect?.size ?? .zero
+        CemuBridgePadOutput.shared.renderScale = UIScreen.main.effectiveRenderScale
     }
 
     private func makeScheme(_ id: String) -> TouchScheme {
@@ -216,6 +258,33 @@ struct TouchLabPadOverlay: View {
             return pad
         default:
             return SchemeCatalog.make(id)
+        }
+    }
+}
+
+// MARK: - For ContentView
+
+// ContentView doesn't import the package. It uses the names below instead, so
+// `import TouchLabUI` stays in this one file.
+
+/// Where the TV and GamePad views are on screen (see `TouchLabPadOverlay.screens`).
+typealias TouchLabScreenState = TouchLabScreens
+
+extension View {
+    /// Marks this view as the one showing the TV picture.
+    func touchLabTVScreen() -> some View { touchLabScreenFrame(.tv) }
+
+    /// Marks this view as the one showing the GamePad picture. Apply it AFTER any gesture
+    /// on the view, so it measures the same frame the gesture does.
+    func touchLabGamePadScreen() -> some View { touchLabScreenFrame(.gamepad) }
+
+    /// Keeps `screens` up to date with the marked views' frames. Writes only when the
+    /// layout actually changed, and never from the input path.
+    func trackTouchLabScreens(_ screens: Binding<TouchLabScreenState>,
+                              imageIsAspectFit: @escaping () -> Bool) -> some View {
+        onPreferenceChange(TouchLabScreenFramesKey.self) { frames in
+            let next = TouchLabScreens(frames: frames, imageIsAspectFit: imageIsAspectFit())
+            if next != screens.wrappedValue { screens.wrappedValue = next }
         }
     }
 }

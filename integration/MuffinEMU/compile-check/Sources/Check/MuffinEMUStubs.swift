@@ -1,4 +1,4 @@
-// Stubs with the SAME shapes as MuffinEMU's real declarations (main @ 4c70e7d3). If
+// Stubs with the SAME shapes as MuffinEMU's real declarations (main @ 8de67090). If
 // MuffinEMU changes one of these, update the stub to match - it is the contract the
 // drop-in file is compiled against.
 import SwiftUI
@@ -59,6 +59,7 @@ enum ControllerLayoutSettings {
 }
 
 // src/ios/App/PadDiagnostics.swift
+@MainActor
 final class PadDiagnostics: ObservableObject {
     static let shared = PadDiagnostics()
     func recordInput(_ label: String, _ pressed: Bool) {}
@@ -67,5 +68,7 @@ final class PadDiagnostics: ObservableObject {
 
 // src/ios/App/RenderScale.swift
 extension UIScreen {
+    // Real code: `max(0.5, Double(scale) * RenderScale.current.factor)`. UIScreen is
+    // main-actor isolated in current SDKs, and so is this extension.
     var effectiveRenderScale: Double { Double(scale) }
 }
