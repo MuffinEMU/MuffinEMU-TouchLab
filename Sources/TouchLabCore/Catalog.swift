@@ -22,6 +22,12 @@ public struct TargetDevice: Sendable {
     public let size: CGSize
     public let insets: Insets
 
+    public init(name: String, size: CGSize, insets: Insets) {
+        self.name = name
+        self.size = size
+        self.insets = insets
+    }
+
     public static let all: [TargetDevice] = [
         TargetDevice(name: "iPhone SE", size: CGSize(width: 667, height: 375), insets: .zero),
         TargetDevice(name: "iPhone 16", size: CGSize(width: 852, height: 393),

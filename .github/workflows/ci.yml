@@ -20,8 +20,7 @@ jobs:
       - name: Build the package for iOS (compiles the UIKit layer)
         run: |
           xcodebuild -scheme MuffinTouchLab-Package -destination 'generic/platform=iOS' \
-            -derivedDataPath build/pkg CODE_SIGNING_ALLOWED=NO build | tail -n 20
-          test "${PIPESTATUS[0]}" -eq 0
+            -derivedDataPath build/pkg CODE_SIGNING_ALLOWED=NO build > build.log 2>&1 || { grep -E "error:" build.log | sort -u; tail -n 20 build.log; exit 1; }
 
       - name: Build the TouchLab app
         run: |
@@ -30,8 +29,7 @@ jobs:
           xcodegen generate
           xcodebuild -project TouchLab.xcodeproj -scheme TouchLab -configuration Release \
             -destination 'generic/platform=iOS' -derivedDataPath ../build/app \
-            CODE_SIGNING_ALLOWED=NO build | tail -n 20
-          test "${PIPESTATUS[0]}" -eq 0
+            CODE_SIGNING_ALLOWED=NO build > build.log 2>&1 || { grep -E "error:" build.log | sort -u; tail -n 20 build.log; exit 1; }
 
       - name: Package unsigned IPA
         run: |
