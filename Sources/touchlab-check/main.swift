@@ -204,9 +204,12 @@ do {
     check(drawn.filter { $0.role == .stickKnob }.count == 1, "float: only the active knob is drawn")
     e.moved(1, to: landing + CGPoint(x: 300, y: 0), time: 0.1)
     check((r.sticks[.left]?.x ?? 0) > 0.9, "float: drag right = full right, got \(String(describing: r.sticks[.left]))")
-    e.moved(1, to: landing + CGPoint(x: 150, y: 0), time: 0.2)
-    check((r.sticks[.left]?.x ?? 1) < -0.5 || (r.sticks[.left]?.x ?? 1) < 0.95,
-          "float: base followed, so pulling back reverses quickly, got \(String(describing: r.sticks[.left]))")
+    let knob = e.render().first { $0.role == .stickKnob }!.shape.center
+    let travel = PadParts.stickTravel * s.controls.first { $0.button == .a }!.shape.boundingBox.width / 0.92
+    check(knob.distance(to: landing) <= travel + 0.5, "float: knob stops at full push, \(knob.distance(to: landing)) from anchor")
+    check(e.render().contains { $0.role == .dot && $0.shape.center == landing }, "float: anchor stays put when dragging past the edge")
+    e.moved(1, to: landing + CGPoint(x: -300, y: 0), time: 0.2)
+    check((r.sticks[.left]?.x ?? 0) < -0.9, "float: full left from the same anchor, got \(String(describing: r.sticks[.left]))")
     e.ended(1, at: landing, time: 0.3)
     e.began(1, at: landing, time: 0.4)
     check(!r.held.contains(.stickL), "float: re-grabbing after a drag is not a click")

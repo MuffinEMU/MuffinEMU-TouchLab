@@ -7,7 +7,8 @@ import CoreGraphics
 /// lands in the same place twice.
 ///
 /// - Left stick: put a thumb down anywhere in the lower-left and the stick is centred
-///   under it. Drag past full travel and the base follows, so reversing is instant.
+///   under it, and stays centred there: dragging past full travel holds full push at the
+///   edge rather than dragging the stick along.
 /// - Camera: the same on the right, around the face buttons (which always win a touch
 ///   that lands on them). Set `camera = .swipe` for mouse-look style, where the stick
 ///   follows finger SPEED and settles when the finger stops.
@@ -35,7 +36,7 @@ public final class FloatPad: ControlScheme {
 
     /// Floating sticks draw nothing while idle. While a thumb is down they draw the knob
     /// under it and a small anchor dot where the stick is centred - where the thumb
-    /// landed, or where the base has followed it to - but no ring. A resting ghost and a
+    /// landed - but no ring. A resting ghost and a
     /// full ring jumping to wherever the thumb lands are noise; the anchor is the one
     /// thing you need to see, because it is what "neutral" means.
     override public func render(pressed: Set<PadButton>, sticks: [PadStick: StickValue]) -> [RenderElement] {
@@ -98,7 +99,7 @@ public final class FloatPad: ControlScheme {
         let cameraControl: PadControl
         switch camera {
         case .stick:
-            cameraControl = PadControl(.floatingStick(.right, travel: travel, rest: rightRest, follow: true, click: .stickR),
+            cameraControl = PadControl(.floatingStick(.right, travel: travel, rest: rightRest, follow: false, click: .stickR),
                                        shape: .roundedRect(rightZone, cornerRadius: 0), role: .zone, label: "R",
                                        priority: 0)
         case .swipe:
@@ -117,7 +118,7 @@ public final class FloatPad: ControlScheme {
             PadParts.system(.home, at: CGPoint(x: s.midX, y: sys), u: u),
             PadParts.system(.plus, at: CGPoint(x: s.midX + 1.3 * u, y: sys), u: u),
             PadParts.dpad(dpadCentre, u: u, scale: dk, click: nil),
-            PadControl(.floatingStick(.left, travel: travel, rest: leftRest, follow: true, click: .stickL),
+            PadControl(.floatingStick(.left, travel: travel, rest: leftRest, follow: false, click: .stickL),
                        shape: .roundedRect(leftZone, cornerRadius: 0), role: .zone, label: "L", priority: 0),
             cameraControl,
         ] + PadParts.faceDiamond(faceCentre, u: u, scale: fk, rDot: false)
