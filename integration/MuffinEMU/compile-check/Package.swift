@@ -8,6 +8,7 @@ import PackageDescription
 let package = Package(
     name: "IntegrationCheck",
     platforms: [.iOS(.v15)],
+    products: [.library(name: "Check", targets: ["Check"])],
     dependencies: [.package(path: "../../..")],
     targets: [
         .target(name: "Check", dependencies: [
