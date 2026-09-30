@@ -33,16 +33,21 @@ public final class FloatPad: ControlScheme {
         super.init(info: Self.schemeInfo)
     }
 
-    /// Floating sticks draw only the knob under the thumb while it is down, and nothing
-    /// at all while idle. A resting ghost and a ring that jumps to wherever the thumb
-    /// lands are both noise - the stick is wherever you put your thumb, so there is
-    /// nothing to show until you do.
+    /// Floating sticks draw nothing while idle. While a thumb is down they draw the knob
+    /// under it and a small anchor dot where the stick is centred - where the thumb
+    /// landed, or where the base has followed it to - but no ring. A resting ghost and a
+    /// full ring jumping to wherever the thumb lands are noise; the anchor is the one
+    /// thing you need to see, because it is what "neutral" means.
     override public func render(pressed: Set<PadButton>, sticks: [PadStick: StickValue]) -> [RenderElement] {
-        super.render(pressed: pressed, sticks: sticks).filter { e in
+        super.render(pressed: pressed, sticks: sticks).compactMap { e in
             switch e.role {
-            case .stickBase: return false
-            case .stickKnob: return !e.ghost
-            default: return true
+            case .stickBase:
+                guard !e.ghost else { return nil }
+                return RenderElement(shape: .circle(center: e.shape.center, radius: knobRadius * 0.3), role: .dot)
+            case .stickKnob:
+                return e.ghost ? nil : e
+            default:
+                return e
             }
         }
     }
