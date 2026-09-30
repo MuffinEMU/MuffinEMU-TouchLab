@@ -469,3 +469,9 @@ instead.
 - On a single 16:9 screen on a 4:3 iPad there's no real margin, so Frame falls back to
   Zone's layout. That's intended.
 - Everything is compile- and logic-checked. The on-device test is the real proof.
+- Build coverage: TouchLab's CI builds the package, the bench app and the drop-in with
+  Xcode 16.4 (iOS 18 SDK) and Xcode 26.3 (iOS 26 SDK), deployment target iOS 15. No iOS 27
+  SDK was available on the runners when this was written. MuffinEMU's `ios27-sdk` branch is
+  the first place it'll be built against one. The package uses only long-stable UIKit /
+  SwiftUI API (nothing newer than iOS 15, nothing deprecated), so no source changes are
+  expected there, but check that build's log for warnings.
