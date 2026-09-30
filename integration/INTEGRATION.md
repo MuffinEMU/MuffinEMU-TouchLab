@@ -218,7 +218,7 @@ update the stub in TouchLab too.
 This must be the **only** file that imports `TouchLabCore`/`TouchLabUI`. It also holds the
 small helpers the rest of the app uses instead of importing (see 4.4): `touchLabTVScreen()`,
 `touchLabGamePadScreen()`, `trackTouchLabScreens(_:imageIsAspectFit:)`, the
-`TouchLabScreenState` typealias, `TouchLabSettings.styles` / `summary(_:)` /
+`TouchLabScreenState` wrapper struct, `TouchLabSettings.styles` / `summary(_:)` /
 `cameraOptions` / `resetAdaptiveAll()`.
 
 **Concurrency.** `PadDiagnostics` (and `UIScreen`) are main-actor isolated in the real app,
@@ -253,7 +253,7 @@ never claims the wrong pad is live.
 @State private var topBarHeight: CGFloat = 0
 ```
 
-(The state's type is `TouchLabScreenState`, a typealias in `TouchLabPads.swift`, so this
+(The state's type is `TouchLabScreenState`, a wrapper struct in `TouchLabPads.swift`, so this
 file needs no import.)
 
 **b) `PadSystem`.** Add `case touchLab`. Precedence in `padSystem`:
@@ -539,7 +539,9 @@ wrong or didn't say, all folded into the sections above:
 - `PadDiagnostics` and `UIScreen` are main-actor isolated; the compile-check stub wasn't, so
   it missed a real-app compile error. Stub and drop-in fixed (4.2).
 - ContentView can't use package types without importing them, so the drop-in carries
-  wrappers (4.2, 4.4c).
+  wrappers (4.2, 4.4c). A plain `typealias` isn't enough: a property whose type lives in
+  `TouchLabUI` makes the compiler warn in any file that doesn't import it, so the state is
+  a wrapper struct (`TouchLabScreenState`).
 - The renderer is aspect-fit unless "Frame stretching" is on; `imageIsAspectFit` follows it
   (4.4c).
 - Settings hid the stick gate, deadzone and curve unless "Add analog sticks" was on, which
