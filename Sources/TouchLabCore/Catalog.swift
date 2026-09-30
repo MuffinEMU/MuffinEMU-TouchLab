@@ -29,12 +29,18 @@ public struct TargetDevice: Sendable {
     }
 
     public static let all: [TargetDevice] = [
+        // Smallest screens iOS 15 still runs on (iPhone SE 1st gen, iPod touch 7th gen).
+        TargetDevice(name: "iPhone SE 1st gen", size: CGSize(width: 568, height: 320), insets: .zero),
         TargetDevice(name: "iPhone SE", size: CGSize(width: 667, height: 375), insets: .zero),
         TargetDevice(name: "iPhone 16", size: CGSize(width: 852, height: 393),
                      insets: Insets(left: 59, bottom: 21, right: 59)),
         TargetDevice(name: "iPhone 16 Pro Max", size: CGSize(width: 956, height: 440),
                      insets: Insets(left: 62, bottom: 21, right: 62)),
+        TargetDevice(name: "iPhone 8 Plus", size: CGSize(width: 736, height: 414), insets: .zero),
+        TargetDevice(name: "iPad 9th gen", size: CGSize(width: 1080, height: 810), insets: .zero),
         TargetDevice(name: "iPad mini", size: CGSize(width: 1133, height: 744),
+                     insets: Insets(top: 24, bottom: 20)),
+        TargetDevice(name: "iPad Air 13", size: CGSize(width: 1366, height: 1024),
                      insets: Insets(top: 24, bottom: 20)),
         TargetDevice(name: "iPad Pro 11 (A12Z)", size: CGSize(width: 1194, height: 834),
                      insets: Insets(top: 24, bottom: 20)),

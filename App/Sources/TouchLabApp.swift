@@ -12,10 +12,19 @@ struct TouchLabApp: App {
             LabView()
                 .preferredColorScheme(.dark)
                 .statusBarHidden()
-                .persistentSystemOverlays(.hidden)
-                // Edge swipes on a game pad are almost always thumbs, not requests for
-                // Control Centre.
-                .defersSystemGestures(on: .all)
+                .modifier(GamePadSystemGestures())
+        }
+    }
+}
+
+/// iOS 16+: hide the home indicator and defer edge swipes (on a game pad they are almost
+/// always thumbs, not requests for Control Centre). iOS 15 has no SwiftUI API for either.
+struct GamePadSystemGestures: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content.persistentSystemOverlays(.hidden).defersSystemGestures(on: .all)
+        } else {
+            content
         }
     }
 }
@@ -203,7 +212,7 @@ struct LabSettings: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             Form {
                 Section("Scheme") {
                     Picker("Scheme", selection: $schemeID) {
@@ -238,10 +247,12 @@ struct LabSettings: View {
                     .pickerStyle(.segmented)
                 }
                 Section("Pad") {
-                    LabeledContent("Size") {
-                        Slider(value: $scale, in: 0.7...1.4)
+                    HStack {
+                        Text("Size")
+                        Slider(value: $scale, in: 0.6...1.6)
                     }
-                    LabeledContent("Opacity") {
+                    HStack {
+                        Text("Opacity")
                         Slider(value: $opacity, in: 0.2...1)
                     }
                     Toggle("Haptics", isOn: $haptics)
@@ -250,5 +261,6 @@ struct LabSettings: View {
             .navigationTitle("TouchLab")
             .toolbar { Button("Done") { dismiss() } }
         }
+        .navigationViewStyle(.stack)
     }
 }

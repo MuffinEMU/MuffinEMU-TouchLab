@@ -111,6 +111,29 @@ for info in SchemeCatalog.all {
     }
 }
 
+// MARK: Any window size
+// iPad Split View, Slide Over, Stage Manager and iOS 26+ free-form windows can hand the pad
+// almost any size. Sweep a grid of them: every layout must still fit without overlaps.
+
+for info in SchemeCatalog.all {
+    var bad: [String] = []
+    var w: CGFloat = 480
+    while w <= 1400 {
+        var h: CGFloat = 300
+        while h <= 1100 {
+            let ctx = LayoutContext(size: CGSize(width: w, height: h),
+                                    safeInsets: Insets(top: 20, left: 0, bottom: 20, right: 0))
+            let scheme = SchemeCatalog.make(info.id) as! ControlScheme
+            scheme.layout(ctx)
+            let p = LayoutCheck.problems(scheme.controls, in: ctx.safeBounds)
+            if !p.isEmpty { bad.append("\(Int(w))x\(Int(h)): \(p.first!)") }
+            h += 80
+        }
+        w += 70
+    }
+    check(bad.isEmpty, "\(info.name): \(bad.count) window sizes fail, e.g. \(bad.prefix(3).joined(separator: " | "))")
+}
+
 // MARK: Behaviour, through the engine, on the A12Z iPad
 
 let ipad = TargetDevice.all.first { $0.name.contains("A12Z") }!
@@ -256,6 +279,15 @@ do {
     let portrait = TargetDevice.all.first { $0.name.contains("portrait") }!
     let fp = FramePad(); fp.layout(portrait.context(.single))
     check(fp.mode == .band, "frame: portrait single screen uses the bottom band, got \(fp.mode)")
+}
+
+do {
+    let fit = PadScreenGeometry.aspectFit(16.0 / 9.0, in: CGRect(x: 0, y: 0, width: 1000, height: 1000))
+    check(abs(fit.width - 1000) < 0.01 && abs(fit.height - 562.5) < 0.01 && abs(fit.minY - 218.75) < 0.01,
+          "aspectFit letterboxes 16:9 in a square, got \(fit)")
+    let tall = PadScreenGeometry.aspectFit(16.0 / 9.0, in: CGRect(x: 10, y: 0, width: 1600, height: 450))
+    check(abs(tall.height - 450) < 0.01 && abs(tall.width - 800) < 0.01 && abs(tall.midX - 810) < 0.01,
+          "aspectFit pillarboxes in a wide rect, got \(tall)")
 }
 
 print("\(passes) passed, \(failures) failed")

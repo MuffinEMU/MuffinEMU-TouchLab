@@ -26,6 +26,25 @@ public final class TouchPadView: UIView {
     public var videoRects: [CGRect] = [] { didSet { relayout() } }
     public var scale: CGFloat = 1 { didSet { relayout() } }
     public var stickTuning = StickTuning() { didSet { relayout() } }
+    /// Which coordinate space `touchscreenRect` / `videoRects` are given in. `.window`
+    /// takes SwiftUI `.global` frames (window coordinates) and converts them into this
+    /// view's space, so a host can report screen frames from anywhere in its hierarchy.
+    public var rectSpace: RectSpace = .local { didSet { relayout() } }
+    /// Off = the pad is drawn but takes no touches, and anything held is released. For a
+    /// paused title and for layout-editing mode.
+    public var isInputEnabled = true {
+        didSet {
+            guard isInputEnabled != oldValue else { return }
+            if !isInputEnabled { dropAll() }
+            setNeedsDisplay()
+        }
+    }
+
+    public enum RectSpace: Equatable { case local, window }
+
+    /// Added to the safe area before layout: room the host keeps for its own chrome (a
+    /// top bar), so no control is placed underneath it.
+    public var extraInsets = Insets() { didSet { relayout() } }
 
     private var displayLink: CADisplayLink?
     private let impact = UIImpactFeedbackGenerator(style: .light)
@@ -66,11 +85,23 @@ public final class TouchPadView: UIView {
         relayout()
     }
 
+    public override func didMoveToWindow() {
+        super.didMoveToWindow()
+        relayout()
+    }
+
+    private func toLocal(_ r: CGRect) -> CGRect {
+        guard rectSpace == .window, window != nil else { return r }
+        return convert(r, from: nil)
+    }
+
     private func relayout(force: Bool = false) {
         let i = safeAreaInsets
+        let e = extraInsets
         let ctx = LayoutContext(size: bounds.size,
-                                safeInsets: Insets(top: i.top, left: i.left, bottom: i.bottom, right: i.right),
-                                videoRects: videoRects, touchscreenRect: touchscreenRect,
+                                safeInsets: Insets(top: i.top + e.top, left: i.left + e.left,
+                                                   bottom: i.bottom + e.bottom, right: i.right + e.right),
+                                videoRects: videoRects.map(toLocal), touchscreenRect: touchscreenRect.map(toLocal),
                                 scale: scale, stick: stickTuning)
         if force || ctx != engine.context {
             engine.setContext(ctx)
@@ -82,10 +113,13 @@ public final class TouchPadView: UIView {
     // MARK: Touches
 
     public override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        guard isUserInteractionEnabled, !isHidden, alpha > 0.01, self.point(inside: point, with: event) else { return nil }
-        // Any finger already down means this touch is part of a multi-finger gesture on
-        // the pad; don't make the second thumb's fate depend on where it lands.
-        return engine.mixer.liveTouches > 0 || engine.claims(point) ? self : nil
+        guard isInputEnabled, isUserInteractionEnabled, !isHidden, alpha > 0.01,
+              self.point(inside: point, with: event) else { return nil }
+        // Only touches a control (or the GamePad touchscreen) wants. A pad that took every
+        // touch while a thumb was down would block the host's own buttons - pause, back -
+        // for as long as a stick was held, and gain nothing: an unclaimed touch is
+        // dropped anyway.
+        return engine.claims(point) ? self : nil
     }
 
     private func id(_ t: UITouch) -> TouchID { ObjectIdentifier(t).hashValue }
@@ -231,12 +265,22 @@ public struct TouchPad: UIViewRepresentable {
     public var scale: CGFloat
     public var opacity: CGFloat
     public var haptics: Bool
+    public var enabled: Bool
+    public var stickTuning: StickTuning
+    public var rectSpace: TouchPadView.RectSpace
+    public var extraInsets: Insets
     public var onChange: ((PadEngine) -> Void)?
 
     public init(schemeID: String, output: PadOutput, touchscreenRect: CGRect? = nil, videoRects: [CGRect] = [],
                 scale: CGFloat = 1, opacity: CGFloat = 0.85, haptics: Bool = true, revision: Int = 0,
+                enabled: Bool = true, stickTuning: StickTuning = StickTuning(),
+                rectSpace: TouchPadView.RectSpace = .local, extraInsets: Insets = Insets(),
                 makeScheme: @escaping (String) -> TouchScheme = SchemeCatalog.make,
                 onChange: ((PadEngine) -> Void)? = nil) {
+        self.enabled = enabled
+        self.stickTuning = stickTuning
+        self.rectSpace = rectSpace
+        self.extraInsets = extraInsets
         self.schemeID = schemeID
         self.revision = revision
         self.makeScheme = makeScheme
@@ -271,6 +315,10 @@ public struct TouchPad: UIViewRepresentable {
     }
 
     private func apply(to view: TouchPadView) {
+        if view.rectSpace != rectSpace { view.rectSpace = rectSpace }
+        if view.extraInsets != extraInsets { view.extraInsets = extraInsets }
+        if view.stickTuning != stickTuning { view.stickTuning = stickTuning }
+        if view.isInputEnabled != enabled { view.isInputEnabled = enabled }
         if view.touchscreenRect != touchscreenRect { view.touchscreenRect = touchscreenRect }
         if view.videoRects != videoRects { view.videoRects = videoRects }
         if view.scale != scale { view.scale = scale }

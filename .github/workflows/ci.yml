@@ -11,8 +11,25 @@ permissions:
 jobs:
   build:
     runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        # oldest: an Xcode 16 (iOS 18 SDK). newest: the newest non-beta Xcode on the runner
+        # (iOS 26+ SDK). The package and app target iOS 15, so both must build, and the IPA
+        # is published from the newest one.
+        xcode: [oldest, newest]
+    name: build (${{ matrix.xcode }} Xcode)
     steps:
       - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          ALL=$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V)
+          if [ "${{ matrix.xcode }}" = newest ]; then X=$(echo "$ALL" | tail -1)
+          else X=$(echo "$ALL" | grep '/Xcode_16' | tail -1); fi
+          [ -n "$X" ] || { echo "::error::no Xcode for ${{ matrix.xcode }} in: $ALL"; exit 1; }
+          sudo xcode-select -s "$X"
+          xcodebuild -version
 
       - name: Behaviour and layout checks (macOS)
         run: swift run touchlab-check
@@ -21,6 +38,13 @@ jobs:
         run: |
           xcodebuild -scheme MuffinTouchLab-Package -destination 'generic/platform=iOS' \
             -derivedDataPath build/pkg CODE_SIGNING_ALLOWED=NO build > build.log 2>&1 || { grep -E "error:" build.log | sort -u; tail -n 20 build.log; exit 1; }
+
+      - name: Compile the MuffinEMU drop-in against MuffinEMU-shaped stubs (iOS)
+        run: |
+          cd integration/MuffinEMU/compile-check
+          cp ../TouchLabPads.swift Sources/Check/
+          xcodebuild -scheme Check -destination 'generic/platform=iOS' -derivedDataPath ../../../build/check \
+            CODE_SIGNING_ALLOWED=NO build > build.log 2>&1 || { grep -E "error:" build.log | sort -u; tail -n 20 build.log; exit 1; }
 
       - name: Build the TouchLab app
         run: |
@@ -41,13 +65,14 @@ jobs:
       # The account's artifact storage is shared and often full; the release below is the
       # real delivery, so a failed upload here must not fail the build.
       - uses: actions/upload-artifact@v4
+        if: matrix.xcode == 'newest'
         continue-on-error: true
         with:
           name: TouchLab-ipa
           path: TouchLab.ipa
 
       - name: Publish test build
-        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        if: matrix.xcode == 'newest' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

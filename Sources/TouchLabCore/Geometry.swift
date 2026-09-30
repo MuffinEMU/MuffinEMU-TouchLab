@@ -148,3 +148,13 @@ public struct Insets: Equatable, Sendable {
     }
     public static let zero = Insets()
 }
+
+public enum PadScreenGeometry {
+    /// The largest rect of the given aspect ratio (width / height) centred in `rect`.
+    public static func aspectFit(_ aspect: CGFloat, in rect: CGRect) -> CGRect {
+        guard rect.width > 0, rect.height > 0, aspect > 0 else { return rect }
+        var w = rect.width, h = w / aspect
+        if h > rect.height { h = rect.height; w = h * aspect }
+        return CGRect(x: rect.midX - w / 2, y: rect.midY - h / 2, width: w, height: h)
+    }
+}

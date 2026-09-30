@@ -2,7 +2,7 @@ name: TouchLab
 options:
   bundleIdPrefix: com.kiddreads
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "15.0"
 packages:
   MuffinTouchLab:
     path: ..

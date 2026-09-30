@@ -6,3 +6,5 @@ Payload/
 *.ipa
 .DS_Store
 site/
+integration/MuffinEMU/compile-check/Sources/Check/TouchLabPads.swift
+integration/MuffinEMU/compile-check/build.log
