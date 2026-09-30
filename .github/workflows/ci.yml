@@ -43,7 +43,11 @@ jobs:
         run: |
           cd integration/MuffinEMU/compile-check
           cp ../TouchLabPads.swift Sources/Check/
-          xcodebuild -scheme Check -destination 'generic/platform=iOS' -derivedDataPath ../../../build/check \
+          xcodebuild -list
+          SCHEME=$(xcodebuild -list -json | python3 -c 'import json,sys; d=json.load(sys.stdin); s=(d.get("workspace") or d.get("project") or {}).get("schemes",[]); print(next((x for x in ["Check","IntegrationCheck-Package","IntegrationCheck"] if x in s), ""))')
+          [ -n "$SCHEME" ] || { echo "::error::no Check scheme"; exit 1; }
+          echo "scheme: $SCHEME"
+          xcodebuild -scheme "$SCHEME" -destination 'generic/platform=iOS' -derivedDataPath ../../../build/check \
             CODE_SIGNING_ALLOWED=NO build > build.log 2>&1 || { grep -E "error:" build.log | sort -u; tail -n 20 build.log; exit 1; }
 
       - name: Build the TouchLab app
