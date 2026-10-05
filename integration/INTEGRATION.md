@@ -5,7 +5,7 @@ Adaptive, Frame** — to MuffinEMU. Read all of it before changing anything. The
 files are [`CHECKLIST.md`](CHECKLIST.md) (tick-list for the whole job) and
 [`DEVICE-TEST.md`](DEVICE-TEST.md) (the on-device test script).
 
-First written against `kiddreads/MuffinEMU` **main @ `4c70e7d3`** and verified again
+First written against `MuffinEMU/MuffinEMU` **main @ `4c70e7d3`** and verified again
 against **main @ `8de67090`** (every anchor below still held; see "Corrections from the
 first integration" at the end). If main has moved, re-read each site before editing: the
 line numbers here are hints, not addresses.
@@ -97,8 +97,8 @@ something.
    Fine for an options-only change whose default is unchanged; know it happens. Opening a
    pull request into `main` also builds, but publishes nothing (the IPA is only a run
    artifact).
-3. **Commit identity:** author and committer `kiddreads
-   <285094405+kiddreads@users.noreply.github.com>`. **No AI co-author trailers, session
+3. **Commit identity:** author and committer `MuffinEMU
+   <muffinemu.dev@gmail.com>`. **No AI co-author trailers, session
    trailers or "generated with" lines** in any commit, PR, release or file.
 4. **Every commit carries a `Release-note:` trailer written for a player**, not a
    developer. Repeated trailers are one note wrapped across lines. `Release-note: skip`
@@ -117,7 +117,7 @@ something.
    account's profile name and email, which puts a personal name in public history. When
    the owner says to merge, let `POST /repos/{repo}/merges` (or a local merge) compute the
    tree. Then recreate the commit via `POST /git/commits` with the same tree and parents
-   and an explicit kiddreads author/committer, and move the ref.
+   and an explicit MuffinEMU author/committer, and move the ref.
 7. **Comment-only / docs-only commits** that must not cut a release go in with `[skip ci]`
    (docs and `*.md` are already in `paths-ignore`).
 8. **Several agents share the local checkout.** Don't move `HEAD` in a shared tree, and
@@ -137,7 +137,7 @@ something.
 - Check free disk space first (`df -h`). The machine this usually runs on is often nearly
   full. A full MuffinEMU worktree needs several hundred MB; a sparse one (below) is about
   30 MB. If there isn't room, commit through
-  the GitHub API instead of a checkout (a helper for API commits as kiddreads may already
+  the GitHub API instead of a checkout (a helper for API commits as MuffinEMU may already
   exist on the machine; otherwise use `gh api` with `git/blobs`, `git/trees`,
   `git/commits` and `git/refs`).
 - Branch from **current** `origin/main` (fetch first; a local clone may be days behind):

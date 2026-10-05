@@ -1,7 +1,7 @@
 // Drop-in for MuffinEMU: src/ios/App/TouchLabPads.swift
 //
 // Everything MuffinEMU needs to offer the TouchLab control styles (Zone, Float, Adaptive,
-// Frame) alongside its own pad and Melo-Controller. Written against kiddreads/MuffinEMU
+// Frame) alongside its own pad and Melo-Controller. Written against MuffinEMU/MuffinEMU
 // release/v6.4 @ 4e7223af; see integration/INTEGRATION.md for the ContentView / Settings /
 // PadDiagnostics edits that wire it in.
 //

@@ -7,7 +7,7 @@ Tick every box, in order. Each maps to a section of [INTEGRATION.md](INTEGRATION
 - [ ] `df -h`: enough room for a worktree? If not, plan API commits (§4.0).
 - [ ] `git fetch origin`; note `origin/main`'s sha. If it isn't `4c70e7d3`, re-read every edit site before editing.
 - [ ] Worktree/branch `feature/touchlab-controls` from `origin/main`. Not the shared checkout's `HEAD`, not `main`.
-- [ ] Repo-local identity = kiddreads (`git config user.name kiddreads`, `user.email 285094405+kiddreads@users.noreply.github.com`).
+- [ ] Repo-local identity = MuffinEMU (`git config user.name MuffinEMU`, `user.email muffinemu.dev@gmail.com`).
 - [ ] TouchLab checkout is clean and pushed; `swift run touchlab-check` passes there.
 
 ## Wiring (one commit per bullet group is fine; each with a `Release-note:` trailer)
@@ -35,12 +35,12 @@ Tick every box, in order. Each maps to a section of [INTEGRATION.md](INTEGRATION
 - [ ] No `.scaleEffect` / gestures / negative padding around `TouchPad`.
 - [ ] Deployment target still iOS 15; no iOS 16+ API without `if #available`.
 - [ ] Diff has no names, ticket ids, AI mentions or local paths: `git diff origin/main | grep -nE "/Users/|/Volumes/|BW-[0-9]|Claude|Co-Authored"` is empty.
-- [ ] Every commit: kiddreads author, `Release-note:` trailer, no AI trailers.
+- [ ] Every commit: MuffinEMU author, `Release-note:` trailer, no AI trailers.
 
 ## Build and hand-off
 - [ ] `swift run --package-path src/ios/Packages/MuffinTouchLab touchlab-check`: 0 failed.
 - [ ] `gh workflow run build-ios-app.yml --ref feature/touchlab-controls`: green; build log has no new warnings from TouchLabPads.swift.
 - [ ] `auto-<sha>` pre-release IPA link + [DEVICE-TEST.md](DEVICE-TEST.md) handed to the owner.
 - [ ] Device results recorded per style; failures fixed on the branch and re-tested.
-- [ ] Merge only when the owner says so, using the kiddreads-authored merge procedure (INTEGRATION.md §3 rule 6). Never the PR merge button.
+- [ ] Merge only when the owner says so, using the MuffinEMU-authored merge procedure (INTEGRATION.md §3 rule 6). Never the PR merge button.
 - [ ] After merge: note whether the `ios27-sdk` branch needs `main` merged in (ask the owner).
