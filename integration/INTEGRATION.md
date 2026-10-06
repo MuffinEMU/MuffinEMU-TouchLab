@@ -5,7 +5,7 @@ Adaptive, Frame** — to MuffinEMU. Read all of it before changing anything. The
 files are [`CHECKLIST.md`](CHECKLIST.md) (tick-list for the whole job) and
 [`DEVICE-TEST.md`](DEVICE-TEST.md) (the on-device test script).
 
-First written against `MuffinEMU/MuffinEMU` **main @ `4c70e7d3`** and verified again
+First written against `MuffinEMU/Muffin-EMU` **main @ `4c70e7d3`** and verified again
 against **main @ `8de67090`** (every anchor below still held; see "Corrections from the
 first integration" at the end). If main has moved, re-read each site before editing: the
 line numbers here are hints, not addresses.
