@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="810" viewBox="0 0 1080.0 810.0" font-family="-apple-system, Helvetica, sans-serif">
+<rect width="100%" height="100%" fill="#101014"/>
+<rect x="0.0" y="0.0" width="1080.0" height="810.0" fill="none" stroke="#2a2a33" stroke-dasharray="6 6"/>
+<rect x="0.0" y="101.2" width="1080.0" height="607.5" fill="#23324a"/>
+<text x="540.0" y="405.0" fill="#4d6690" font-size="22" text-anchor="middle">GamePad</text>
+<rect x="0.0" y="101.2" width="1080.0" height="607.5" rx="6.0" fill="none" stroke="#4d6690" stroke-width="1.5" opacity="0.12"/>
+<rect x="887.4" y="646.2" width="190.8" height="162.0" rx="21.6" fill="#d9d9e2" stroke="#ffffff" stroke-width="1.5" opacity="0.5"/>
+<text x="982.8" y="736.6" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">A</text>
+<rect x="757.8" y="538.2" width="126.0" height="270.0" rx="21.6" fill="#d9d9e2" stroke="#ffffff" stroke-width="1.5" opacity="0.5"/>
+<text x="820.8" y="682.6" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">B</text>
+<rect x="887.4" y="538.2" width="190.8" height="104.4" rx="21.6" fill="#d9d9e2" stroke="#ffffff" stroke-width="1.5" opacity="0.5"/>
+<text x="982.8" y="599.8" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">A+R</text>
+<rect x="757.8" y="444.6" width="320.4" height="90.0" rx="21.6" fill="#d9d9e2" stroke="#ffffff" stroke-width="1.5" opacity="0.5"/>
+<text x="918.0" y="499.0" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">R</text>
+<rect x="511.2" y="522.0" width="122.4" height="90.0" rx="21.6" fill="#8d8d99" stroke="#b5b5c0" stroke-width="1.5" opacity="0.9"/>
+<text x="572.4" y="576.4" fill="#111116" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">L</text>
+<rect x="1.8" y="204.3" width="385.2" height="603.9" rx="21.6" fill="#7fa8ff" stroke="#9bbcff" stroke-width="1.5" opacity="0.22"/>
+<text x="194.4" y="515.6" fill="#c4d6ff" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">STEER</text>
+<circle cx="446.4" cy="43.2" r="27.8" fill="#6e6e7a" stroke="#9a9aa6" stroke-width="1.5" opacity="0.9"/>
+<text x="446.4" y="51.6" fill="#f2f2f6" font-size="23.4" font-weight="600" text-anchor="middle" opacity="1.0">X</text>
+<circle cx="540.0" cy="43.2" r="27.8" fill="#6e6e7a" stroke="#9a9aa6" stroke-width="1.5" opacity="0.9"/>
+<text x="540.0" y="51.6" fill="#f2f2f6" font-size="23.4" font-weight="600" text-anchor="middle" opacity="1.0">+</text>
+<circle cx="633.6" cy="43.2" r="27.8" fill="#6e6e7a" stroke="#9a9aa6" stroke-width="1.5" opacity="0.9"/>
+<text x="633.6" y="51.6" fill="#f2f2f6" font-size="23.4" font-weight="600" text-anchor="middle" opacity="1.0">⌂</text>
+<text x="12" y="800.0" fill="#8888a0" font-size="13">Racing - iPad 9th gen - single</text>
+</svg>
