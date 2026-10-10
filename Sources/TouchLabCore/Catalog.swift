@@ -3,13 +3,15 @@ import CoreGraphics
 /// The four schemes, for pickers and for the checks.
 public enum SchemeCatalog {
     public static let all: [SchemeInfo] = [ZonePad.schemeInfo, FloatPad.schemeInfo,
-                                           AdaptivePad.schemeInfo, FramePad.schemeInfo]
+                                           AdaptivePad.schemeInfo, FramePad.schemeInfo,
+                                           ShowcasePad.schemeInfo]
 
     public static func make(_ id: String) -> TouchScheme {
         switch id {
         case FloatPad.schemeInfo.id: return FloatPad()
         case AdaptivePad.schemeInfo.id: return AdaptivePad()
         case FramePad.schemeInfo.id: return FramePad()
+        case ShowcasePad.schemeInfo.id: return ShowcasePad()
         default: return ZonePad()
         }
     }
