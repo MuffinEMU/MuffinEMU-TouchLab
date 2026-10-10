@@ -375,5 +375,209 @@ do {
           "aspectFit pillarboxes in a wide rect, got \(tall)")
 }
 
+// MARK: Anchor
+
+do {
+    func anchorEngine(_ device: TargetDevice = ipad, _ display: TargetDevice.Display = .stacked) -> (PadEngine, Recorder, AnchorPad) {
+        let r = Recorder()
+        let e = PadEngine(scheme: AnchorPad(), output: r, context: device.context(display))
+        return (e, r, e.scheme as! AnchorPad)
+    }
+    func at(_ s: AnchorPad, _ deg: Double, _ dist: Double) -> CGPoint {
+        let u = Double(s.context.unit * s.diamondScale)
+        let a = deg * .pi / 180
+        return s.anchor + CGPoint(x: cos(a) * dist * u, y: -sin(a) * dist * u)
+    }
+
+    // Eight angles around the anchor. Screen angles: 0 = right (A), 90 = up (X), 180 = Y, 270 = B.
+    let expect: [(Double, PadButton)] = [(0, .a), (90, .x), (180, .y), (270, .b),
+                                         (40, .a), (50, .x), (130, .x), (140, .y),
+                                         (220, .y), (230, .b), (310, .b), (320, .a)]
+    for (deg, button) in expect {
+        let (e, r, s) = anchorEngine()
+        e.began(1, at: at(s, deg, 1.24), time: 0)
+        check(r.held == [button], "anchor: \(deg) deg from the anchor presses \(button), got \(r.held)")
+        e.ended(1, at: at(s, deg, 1.24), time: 0.1)
+    }
+    // Exact diagonals sit on a boundary: the neighbour just used wins.
+    let cardinal: [PadButton: Double] = [.a: 0, .x: 90, .y: 180, .b: 270]
+    for (deg, pair) in [(45.0, [PadButton.a, .x]), (135, [.x, .y]), (225, [.y, .b]), (315, [.b, .a])] {
+        for last in pair {
+            let (e, _, s) = anchorEngine()
+            e.began(1, at: at(s, cardinal[last]!, 1.24), time: 0)
+            e.ended(1, at: at(s, cardinal[last]!, 1.24), time: 0.05)
+            let p = s.decide(at: at(s, deg, 1.24)).primary
+            check(p == last, "anchor: exact \(deg) deg after \(last) lands on \(last), got \(p)")
+        }
+    }
+
+    // Dead centre repeats the last button.
+    do {
+        let (e, r, s) = anchorEngine()
+        e.began(1, at: at(s, 270, 1.24), time: 0); e.ended(1, at: at(s, 270, 1.24), time: 0.1)
+        for i in 0..<4 {
+            r.log = []
+            let p = s.anchor + CGPoint(x: CGFloat(i) * 2 - 3, y: 2)
+            e.began(1, at: p, time: 1 + Double(i)); 
+            check(r.held == [.b], "anchor: dead-centre tap \(i) repeats B, got \(r.held)")
+            e.ended(1, at: p, time: 1.05 + Double(i))
+        }
+    }
+
+    // Decided on touch-down: held on the began call itself, no tick or move needed, and a
+    // slide afterwards does not change it.
+    do {
+        let (e, r, s) = anchorEngine()
+        e.began(1, at: at(s, 180, 1.24), time: 5)
+        check(r.held == [.y], "anchor: press is live on touch-down with zero elapsed time, got \(r.held)")
+        e.moved(1, to: at(s, 0, 1.24), time: 5.01)
+        check(r.held == [.y], "anchor: a press is not re-decided by a later move")
+        e.ended(1, at: at(s, 0, 1.24), time: 5.5)
+        check(r.held.isEmpty, "anchor: released on lift")
+    }
+
+    // Chords: two fingers, and one flat thumb.
+    do {
+        let (e, r, s) = anchorEngine()
+        e.began(1, at: at(s, 0, 1.24), time: 0); e.began(2, at: at(s, 270, 1.24), time: 0.01)
+        check(r.held == [.a, .b], "anchor: two fingers chord A+B, got \(r.held)")
+        e.ended(1, at: .zero, time: 0.1); e.ended(2, at: .zero, time: 0.1)
+        s.noteContactRadius(3, 30)
+        e.began(3, at: at(s, 315, 1.24), time: 1)
+        check(r.held == [.a, .b], "anchor: flat thumb on the A/B boundary chords A+B, got \(r.held)")
+        e.ended(3, at: .zero, time: 1.1)
+        s.noteContactRadius(4, 30)
+        e.began(4, at: at(s, 0, 1.24), time: 2)
+        check(r.held == [.a], "anchor: flat thumb squarely on A is still just A, got \(r.held)")
+        e.ended(4, at: .zero, time: 2.1)
+        s.noteContactRadius(5, 8)
+        e.began(5, at: at(s, 315, 1.24), time: 3)
+        check(r.held.count == 1, "anchor: a normal thumb on the boundary is one button, got \(r.held)")
+        e.ended(5, at: .zero, time: 3.1)
+    }
+
+    // Following: bounded, right half, never in the GamePad rect - every device, both displays.
+    for device in TargetDevice.all {
+        for display in TargetDevice.Display.allCases {
+            let (e, _, s) = anchorEngine(device, display)
+            let ctx = device.context(display)
+            let hole = s.avoidsTouchscreen ? ctx.touchscreenRect : nil
+            func ok(_ what: String) {
+                check(s.anchorBounds.insetBy(dx: -0.01, dy: -0.01).contains(s.anchor), "anchor \(device.name)/\(display): \(what) left its bounds \(s.anchor)")
+                check(!(hole?.contains(s.anchor) ?? false), "anchor \(device.name)/\(display): \(what) inside the GamePad rect")
+                check(s.anchor.x >= ctx.safeBounds.midX - 0.01 || (ctx.touchscreenRect != nil), "anchor \(device.name)/\(display): \(what) left the right half")
+            }
+            ok("default")
+            var t = 0.0
+            for dir in [0.0, 90, 180, 270, 45, 225] {
+                for _ in 0..<60 {
+                    // Presses that land consistently far from where they "should": a drifting grip.
+                    let p = s.anchor + CGPoint(x: cos(dir * .pi / 180) * 120, y: -sin(dir * .pi / 180) * 120)
+                    e.began(1, at: p, time: t); e.ended(1, at: p, time: t + 0.05); t += 0.2
+                    ok("after drifting \(dir)")
+                }
+            }
+            if let hole {   // and rest-learning
+                e.began(2, at: s.anchor + CGPoint(x: hole.midX < s.anchor.x ? -30 : 30, y: 0), time: t)
+                e.tick(time: t + 0.3)
+                ok("rest-learning")
+                e.ended(2, at: .zero, time: t + 0.4)
+            }
+        }
+    }
+
+    // The anchor really does follow a drifting grip, and re-centres the diamond on it.
+    do {
+        let (e, _, s) = anchorEngine()
+        let start = s.anchor
+        let drift = CGPoint(x: 25, y: 18)
+        var t = 0.0
+        for _ in 0..<8 {
+            let p = at(s, 0, 1.24) + drift      // thumb now lands consistently low and right of A
+            e.began(1, at: p, time: t); e.ended(1, at: p, time: t + 0.05); t += 0.3
+        }
+        check(s.anchor.distance(to: start) > 10 && s.anchor.x > start.x && s.anchor.y > start.y,
+              "anchor: follows a drifting grip, moved \(s.anchor - start)")
+        let a = s.controls.first { $0.button == .a }!.shape.center
+        check(a.distance(to: at(s, 0, PadParts.crossX)) < 1.0, "anchor: drawn A moves with the anchor")
+        // Resting still for 150 ms learns without a lift; the held press stays put.
+        let (e2, r2, s2) = anchorEngine()
+        let before = s2.anchor
+        let p = at(s2, 0, 1.24) + CGPoint(x: 0, y: 20)
+        e2.began(1, at: p, time: 0)
+        check(s2.anchor == before, "anchor: nothing moves at touch-down")
+        e2.tick(time: 0.1)
+        check(s2.anchor == before, "anchor: not before 150 ms of rest")
+        e2.tick(time: 0.2)
+        check(s2.anchor != before && r2.held == [.a], "anchor: rests >150 ms update the anchor, press unchanged \(r2.held)")
+        // Saved position round-trips.
+        let f = s2.anchorFraction
+        check(f != nil, "anchor: has a persistable position after learning")
+        let s3 = AnchorPad(); s3.anchorFraction = f; s3.layout(ipad.context(.stacked))
+        check(s3.anchor.distance(to: s2.anchor) < 0.5, "anchor: saved fraction restores the anchor")
+    }
+
+    // Left hand: floating stick, d-pad flick and hold, shoulders, pills.
+    do {
+        let (e, r, s) = anchorEngine(ipad, .single)
+        let stick = s.controls.first { if case .floatingStick(.left, _, _, _, _) = $0.kind { return true }; return false }!
+        let land = stick.shape.center
+        e.began(1, at: land, time: 0)
+        e.moved(1, to: land + CGPoint(x: 300, y: 0), time: 0.05)
+        check((r.sticks[.left]?.x ?? 0) > 0.9, "anchor: left stick floats under the thumb, got \(String(describing: r.sticks[.left]))")
+        e.ended(1, at: land, time: 0.1)
+
+        let u = s.context.unit
+        let d0 = s.dpadArea.center + CGPoint(x: u, y: 0)
+        e.began(2, at: d0, time: 1)
+        check(r.held.isEmpty, "anchor: d-pad area does nothing until it is flicked")
+        e.moved(2, to: d0 + CGPoint(x: 0.7 * u, y: 0), time: 1.05)
+        check(r.held == [.right], "anchor: flick right = d-pad right, got \(r.held)")
+        e.ended(2, at: d0, time: 1.1)
+        e.began(2, at: d0, time: 2)
+        e.moved(2, to: d0 + CGPoint(x: 0.7 * u, y: 0), time: 2.6)
+        check(r.held.isEmpty, "anchor: a slow drag in flick mode is not a flick")
+        e.ended(2, at: d0, time: 2.7)
+        e.began(3, at: s.pillCentre, time: 3); e.ended(3, at: s.pillCentre, time: 3.05)
+        check(s.holdDirectionMode, "anchor: the pill switches to hold-direction mode")
+        e.began(2, at: d0, time: 4)
+        e.moved(2, to: d0 + CGPoint(x: 0, y: -0.8 * u), time: 4.6)
+        check(r.held == [.up], "anchor: hold mode follows a slow drag, got \(r.held)")
+        e.moved(2, to: d0 + CGPoint(x: 0.8 * u, y: 0.0), time: 4.7)
+        check(r.held == [.right], "anchor: hold mode rolls to the new direction, got \(r.held)")
+        e.ended(2, at: d0, time: 4.8)
+        check(r.held.isEmpty, "anchor: d-pad releases on lift")
+
+        for b in [PadButton.zl, .l, .zr, .r, .plus, .minus, .home] {
+            let c = s.controls.first { $0.button == b }!.shape.center
+            e.began(5, at: c, time: 6); let h = r.held; e.ended(5, at: c, time: 6.1)
+            check(h == [b], "anchor: \(b) band/pill tap, got \(h)")
+        }
+        let cam = s.controls.first { if case .floatingStick(.right, _, _, _, _) = $0.kind { return true }; return false }!
+        e.began(6, at: cam.shape.center, time: 8)
+        e.moved(6, to: cam.shape.center + CGPoint(x: 0, y: -300), time: 8.05)
+        check((r.sticks[.right]?.y ?? 0) > 0.9, "anchor: right camera stick floats too")
+        e.ended(6, at: .zero, time: 8.1)
+        // A GamePad touchscreen touch in the video still reaches the screen, not a face button.
+        let hole = s.context.touchscreenRect!
+        let q = CGPoint(x: hole.midX, y: hole.midY)
+        if !s.claims(q) {
+            e.began(9, at: q, time: 9)
+            check(r.screen != nil && r.held.isEmpty, "anchor: touchscreen passthrough in the video")
+            e.ended(9, at: q, time: 9.1)
+        }
+    }
+
+    // The diamond is faint by default and solid when learning.
+    do {
+        let (_, _, s) = anchorEngine()
+        let faint = s.render(pressed: [], sticks: [:]).filter { $0.role == .face }
+        check(faint.count == 4 && faint.allSatisfy { $0.ghost }, "anchor: ghost diamond is faint by default")
+        s.learningMode = true
+        let solid = s.render(pressed: [], sticks: [:]).filter { $0.role == .face }
+        check(solid.count == 4 && solid.allSatisfy { !$0.ghost }, "anchor: learning mode draws the diamond solid")
+    }
+}
+
 print("\(passes) passed, \(failures) failed")
 exit(Int32(min(failures, 125)))

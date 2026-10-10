@@ -130,7 +130,10 @@ public final class TouchPadView: UIView {
     private func id(_ t: UITouch) -> TouchID { ObjectIdentifier(t).hashValue }
 
     public override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for t in touches { engine.began(id(t), at: t.location(in: self), time: t.timestamp) }
+        for t in touches {
+            (engine.scheme as? ContactRadiusAware)?.noteContactRadius(id(t), t.majorRadius)
+            engine.began(id(t), at: t.location(in: self), time: t.timestamp)
+        }
         changed()
     }
 
