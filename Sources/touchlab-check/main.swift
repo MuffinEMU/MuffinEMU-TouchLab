@@ -163,22 +163,41 @@ for options in [RacingPad.Options(), RacingPad.Options(autoAccelerate: true), Ra
     }
 }
 
-// MARK: Zone with a large A
+// MARK: A button size
+// The slider runs 1.0...1.8 in 0.01 steps on every style. A must only ever grow with it, with
+// no jump between adjacent steps, and stay on screen and clear of its neighbours at the top.
 
-for device in TargetDevice.all {
+func aWidth(_ scheme: ControlScheme) -> CGFloat {
+    let a = scheme.controls.first {
+        if case .pedal(let set) = $0.kind { return set == [.a] }
+        return $0.button == .a
+    }
+    return a?.shape.boundingBox.width ?? 0
+}
+
+for device in ["iPad Pro 11 (A12Z)", "iPhone 16"].compactMap({ name in TargetDevice.all.first { $0.name == name } }) {
     for display in TargetDevice.Display.allCases {
         let ctx = device.context(display)
-        let normal = ZonePad(), large = ZonePad(largeA: true)
-        normal.layout(ctx); large.layout(ctx)
-        let where_ = "Zone large A / \(device.name) / \(display.rawValue)"
-        check(LayoutCheck.problems(large.controls, in: ctx.safeBounds).isEmpty,
-              "\(where_): \(LayoutCheck.problems(large.controls, in: ctx.safeBounds).joined(separator: "; "))")
-        let aN = normal.controls.first { $0.button == .a }!.shape.boundingBox.width
-        let aL = large.controls.first { $0.button == .a }!.shape.boundingBox.width
-        let yL = large.controls.first { $0.button == .y }!.shape.boundingBox.width
-        check(abs(aL / yL - 1.4 / 0.9) < 0.01, "\(where_): A is \(aL / yL)x its neighbours")
-        // About 1.4x, less only where the whole layout had to shrink to fit.
-        check(aL >= aN * 1.2, "\(where_): A grew only \(aL / aN)x")
+        for info in SchemeCatalog.all {
+            let where_ = "A size / \(info.name) / \(device.name) / \(display.rawValue)"
+            func laidOut(_ a: CGFloat) -> ControlScheme {
+                let s = SchemeCatalog.make(info.id, aScale: a) as! ControlScheme
+                s.layout(ctx)
+                return s
+            }
+            var prev = aWidth(laidOut(1))
+            check(prev > 0, "\(where_): no A control")
+            for step in 1...80 {
+                let w = aWidth(laidOut(1 + CGFloat(step) / 100))
+                check(w >= prev - 0.001, "\(where_): A shrank \(prev) -> \(w) at \(1 + Double(step) / 100)")
+                check(w <= prev * 1.02 + 0.001, "\(where_): A jumped \(prev) -> \(w) at \(1 + Double(step) / 100)")
+                prev = w
+            }
+            let top = laidOut(1.8)
+            let problems = LayoutCheck.problems(top.controls, in: ctx.safeBounds)
+            check(problems.isEmpty, "\(where_) at 1.8: \(problems.joined(separator: "; "))")
+            check(aWidth(top) >= aWidth(laidOut(1)) * 1.2, "\(where_): A grew only \(aWidth(top) / aWidth(laidOut(1)))x")
+        }
     }
 }
 
@@ -267,6 +286,95 @@ for device in TargetDevice.all {
     }
 }
 
+// MARK: Shoulder offset, upright iPad
+// The same iPad held upright (1024 x 1366) has far more room below the shoulders than held
+// sideways, and the slider's upright range follows it: the largest drop is bigger than in
+// landscape, everything stays on screen, and with the pictures stacked the shoulders stop in
+// front of the GamePad touchscreen instead of covering it.
+
+for id in ["zone", "adaptive"] {
+    let insets = Insets(top: 24, bottom: 20)
+    func drop(_ size: CGSize, request: CGFloat, display: TargetDevice.Display?) -> (CGFloat, [String], CGRect?, CGRect?) {
+        let dev = TargetDevice(name: "iPad 1366", size: size, insets: insets)
+        var ctx = display.map { dev.context($0) } ?? LayoutContext(size: size, safeInsets: insets)
+        let home = SchemeCatalog.make(id) as! ControlScheme
+        home.layout(ctx)
+        ctx.shoulderOffset = request
+        let scheme = SchemeCatalog.make(id) as! ControlScheme
+        scheme.layout(ctx)
+        let d = shoulderRects(scheme)[.zl]!.minY - shoulderRects(home)[.zl]!.minY
+        let zl = shoulderRects(scheme)[.zl]
+        return (d, LayoutCheck.problems(scheme.controls, in: ctx.safeBounds), zl, ctx.touchscreenRect)
+    }
+    let landscape = drop(CGSize(width: 1366, height: 1024), request: 20, display: nil)
+    let upright = drop(CGSize(width: 1024, height: 1366), request: 20, display: nil)
+    check(upright.1.isEmpty, "upright iPad \(id): \(upright.1.first ?? "")")
+    check(upright.0 > landscape.0 + 50, "upright iPad \(id): max drop \(upright.0) not larger than landscape \(landscape.0)")
+    // Stacked: the lowered shoulders stay clear of the GamePad touchscreen.
+    let stacked = drop(CGSize(width: 1024, height: 1366), request: 20, display: .stacked)
+    check(stacked.1.isEmpty, "upright iPad \(id) stacked: \(stacked.1.first ?? "")")
+    // Up to the old 1.5-button maximum the shoulders go exactly where they always did, over the
+    // GamePad screen or not; past it they stop before covering it.
+    if let zl = stacked.2, let gp = stacked.3 {
+        let u = zl.width / 1.9
+        check(!zl.intersects(gp) || stacked.0 <= 1.5 * u + 1,
+              "upright iPad \(id) stacked: shoulders cover the GamePad screen past the old maximum")
+        check(stacked.0 > 1.5 * 72 - 1, "upright iPad \(id) stacked: only moved \(stacked.0)")
+    }
+}
+
+// MARK: Shoulder drops within the old range are exactly what they always were
+// Up to 1.5 buttons (the slider's old maximum) the GamePad touchscreen and video play no part:
+// the same request gives the same shoulders whether or not those rectangles are known. Only
+// past 1.5 do the shoulders stop in front of a rectangle they started clear of.
+
+for (name, size, insets) in [
+    ("iPad landscape", CGSize(width: 1366, height: 1024), Insets(top: 24, bottom: 20)),
+    ("iPad portrait", CGSize(width: 1024, height: 1366), Insets(top: 24, bottom: 20)),
+    ("iPhone landscape", CGSize(width: 852, height: 393), Insets(left: 59, bottom: 21, right: 59)),
+] {
+    for id in ["zone", "adaptive"] {
+        let plain = LayoutContext(size: size, safeInsets: insets)
+        let homeScheme = SchemeCatalog.make(id) as! ControlScheme
+        homeScheme.layout(plain)
+        guard let homeZL = shoulderRects(homeScheme)[.zl] else { continue }
+        let u = homeZL.width / 1.9
+        func layout(_ ctx: LayoutContext, _ request: CGFloat) -> [PadButton: CGRect] {
+            var c = ctx
+            c.shoulderOffset = request
+            let sc = SchemeCatalog.make(id) as! ControlScheme
+            sc.layout(c)
+            return shoulderRects(sc)
+        }
+        // A picture whose top edge the shoulders reach at about half a button down.
+        let near = CGRect(x: 0, y: homeZL.minY + 1.5 * u, width: size.width, height: size.height)
+        // One they only reach well past 1.5 buttons.
+        let far = CGRect(x: 0, y: homeZL.minY + 3.2 * u, width: size.width, height: size.height)
+        for request: CGFloat in [0.25, 0.5, 1, 1.25, 1.5] {
+            let bare = layout(plain, request)
+            for rect in [near, far] {
+                var withRect = plain
+                withRect.touchscreenRect = rect
+                withRect.videoRects = [rect]
+                let got = layout(withRect, request)
+                for (b, r) in bare {
+                    check(got[b] == r, "\(name) \(id) drop \(request): \(b) moved by the GamePad rectangle")
+                }
+            }
+        }
+        // Past the old maximum: blocked at once by the near picture, further than 1.5 by the far one.
+        var nearCtx = plain
+        nearCtx.touchscreenRect = near
+        let atCap = layout(nearCtx, 1.5)[.zl]!.minY
+        check(abs(layout(nearCtx, 20)[.zl]!.minY - atCap) < 0.01, "\(name) \(id): shoulders went past the old maximum into the picture")
+        var farCtx = plain
+        farCtx.touchscreenRect = far
+        let beyond = layout(farCtx, 20)[.zl]!
+        check(!beyond.intersects(far), "\(name) \(id): shoulders cover the picture past the old maximum")
+        check(beyond.minY >= layout(plain, 1.5)[.zl]!.minY - 0.01, "\(name) \(id): shoulders went back up")
+    }
+}
+
 // MARK: Behaviour, through the engine, on the A12Z iPad
 
 let ipad = TargetDevice.all.first { $0.name.contains("A12Z") }!
@@ -282,6 +390,65 @@ func centre(_ s: ControlScheme, _ b: PadButton) -> CGPoint {
 func tap(_ e: PadEngine, _ p: CGPoint, id: TouchID = 1, t: Double = 0) {
     e.began(id, at: p, time: t); e.ended(id, at: p, time: t + 0.1)
 }
+
+// MARK: Stick overtravel
+do {
+    let travel: CGFloat = 100
+    let extra = StickMath.overtravel(travel)
+    check(extra > 0 && extra <= 0.2 * travel, "overtravel is a small fraction of travel: \(extra)")
+    let round = StickTuning(deadzone: 0.06, curve: 1, gate: .round)
+    let oct = StickTuning(deadzone: 0.06, curve: 1, gate: .octagon)
+    for tuning in [round, oct] {
+        let g = tuning.gate
+        for deg in stride(from: 0.0, to: 360.0, by: 15.0) {
+            let a = CGFloat(deg * .pi / 180)
+            let dir = CGPoint(x: cos(a), y: sin(a))
+            let lim = StickMath.gateFraction(g, angle: a)
+            let atEdge = StickMath.value(offset: dir * travel, travel: travel, tuning: tuning)
+            let past = StickMath.value(offset: dir * (travel + 3 * extra), travel: travel, tuning: tuning)
+            check(near(atEdge.magnitude, Double(lim), 1e-6), "edge value is the gate limit at \(deg)deg (\(g)): \(atEdge.magnitude)")
+            check(near(past.magnitude, atEdge.magnitude, 1e-9) && abs(past.x) <= 1 && abs(past.y) <= 1,
+                  "beyond the edge adds no output at \(deg)deg (\(g))")
+            let knob = StickMath.knobOffset(offset: dir * (travel + 3 * extra), travel: travel, gate: g)
+            check(near(Double(knob.length), Double(travel * lim + extra), 1e-3), "knob stops at gate + overtravel at \(deg)deg (\(g))")
+            let inside = StickMath.knobOffset(offset: dir * (travel * 0.5), travel: travel, gate: g)
+            check(near(Double(inside.length), Double(travel * 0.5), 1e-3), "knob follows the finger inside the ring")
+        }
+    }
+    check(near(StickMath.value(offset: CGPoint(x: travel, y: 0), travel: travel, tuning: round).x, 1, 1e-9), "exact boundary = exactly 1")
+    check(StickMath.value(offset: CGPoint(x: 3, y: -3), travel: travel, tuning: round) == .zero, "recentred finger is inside the deadzone")
+}
+
+do {
+    let (e, r, s) = engine("zone", .stacked)
+    let left = s.controls.first { if case .stick(.left, _, _) = $0.kind { return true }; return false }!
+    let right = s.controls.first { if case .stick(.right, _, _) = $0.kind { return true }; return false }!
+    guard case let .stick(_, travel, _) = left.kind else { fatalError() }
+    let extra = StickMath.overtravel(travel)
+    let lc = left.shape.center, rc = right.shape.center
+    e.began(1, at: lc, time: 0)
+    e.began(2, at: rc, time: 0)
+    e.moved(1, to: lc + CGPoint(x: travel, y: 0), time: 0.1)
+    check(near(r.sticks[.left]?.x ?? 0, 1, 1e-9), "overtravel: left at boundary is exactly 1, got \(String(describing: r.sticks[.left]))")
+    e.moved(1, to: lc + CGPoint(x: travel + extra * 0.8, y: 0), time: 0.2)
+    check(near(r.sticks[.left]?.x ?? 0, 1, 1e-9), "overtravel: left past the boundary stays 1")
+    e.moved(2, to: rc + CGPoint(x: 0, y: -(travel + 5 * extra)), time: 0.2)
+    check(near(r.sticks[.right]?.y ?? 0, 1, 1e-9) && near(r.sticks[.right]?.x ?? 1, 0, 1e-9), "overtravel: right far up is (0,1)")
+    check(near(r.sticks[.left]?.x ?? 0, 1, 1e-9), "overtravel: left unaffected by the right finger")
+    let knobs = e.render().filter { $0.role == .stickKnob }
+    let lk = knobs.first { $0.shape.center.distance(to: lc) < 3 * travel && abs($0.shape.center.y - lc.y) < 1 }
+    check(lk != nil && near(Double(lk!.shape.center.x - lc.x), Double(travel + extra * 0.8), 1e-3), "overtravel: left knob follows past the ring")
+    let rk = knobs.first { $0.shape.center.distance(to: rc) < 3 * travel && abs($0.shape.center.x - rc.x) < 1 }
+    check(rk != nil && near(Double(rc.y - rk!.shape.center.y), Double(travel + extra), 1e-3), "overtravel: right knob stops at travel + overtravel")
+    e.moved(1, to: lc + CGPoint(x: 8, y: -8), time: 0.3)
+    check(near(r.sticks[.right]?.y ?? 0, 1, 1e-9), "overtravel: right still held while left moves")
+    e.moved(1, to: lc, time: 0.4)
+    check(r.sticks[.left] == .zero, "overtravel: left recentres to zero")
+    e.ended(2, at: rc, time: 0.5)
+    check(r.sticks[.right] == .zero, "overtravel: right recentres on release")
+    e.ended(1, at: lc, time: 0.6)
+}
+
 
 for id in ["zone", "adaptive", "frame", "float"] {
     let (e, r, s) = engine(id)
@@ -362,7 +529,7 @@ do {
     check((r.sticks[.left]?.x ?? 0) > 0.9, "float: drag right = full right, got \(String(describing: r.sticks[.left]))")
     let knob = e.render().first { $0.role == .stickKnob }!.shape.center
     let travel = PadParts.stickTravel * s.controls.first { $0.button == .a }!.shape.boundingBox.width / 0.92
-    check(knob.distance(to: landing) <= travel + 0.5, "float: knob stops at full push, \(knob.distance(to: landing)) from anchor")
+    check(knob.distance(to: landing) <= travel + StickMath.overtravel(travel) + 0.5, "float: knob stops at full push plus overtravel, \(knob.distance(to: landing)) from anchor")
     check(e.render().contains { $0.role == .dot && $0.shape.center == landing }, "float: anchor stays put when dragging past the edge")
     e.moved(1, to: landing + CGPoint(x: -300, y: 0), time: 0.2)
     check((r.sticks[.left]?.x ?? 0) < -0.9, "float: full left from the same anchor, got \(String(describing: r.sticks[.left]))")
@@ -564,6 +731,67 @@ do {
     let tall = PadScreenGeometry.aspectFit(16.0 / 9.0, in: CGRect(x: 10, y: 0, width: 1600, height: 450))
     check(abs(tall.height - 450) < 0.01 && abs(tall.width - 800) < 0.01 && abs(tall.midX - 810) < 0.01,
           "aspectFit pillarboxes in a wide rect, got \(tall)")
+}
+
+// MARK: Shoulder travel uses the whole room, both ways round
+
+for (name, size, insets) in [
+    ("iPad landscape", CGSize(width: 1366, height: 1024), Insets(top: 24, bottom: 20)),
+    ("iPad portrait", CGSize(width: 1024, height: 1366), Insets(top: 24, bottom: 20)),
+    ("iPhone landscape", CGSize(width: 932, height: 430), Insets(left: 59, bottom: 21, right: 59)),
+    ("iPhone portrait", CGSize(width: 430, height: 932), Insets(top: 59, bottom: 34)),
+] {
+    for id in ["zone", "adaptive"] {
+        let ctx = LayoutContext(size: size, safeInsets: insets)
+        let limit = GamePadArrangement.maxShoulderDrop(ctx)
+        var home = ctx
+        home.shoulderOffset = 0
+        let homeScheme = SchemeCatalog.make(id) as! ControlScheme
+        homeScheme.layout(home)
+        var far = ctx
+        far.shoulderOffset = limit
+        let farScheme = SchemeCatalog.make(id) as! ControlScheme
+        farScheme.layout(far)
+        var over = ctx
+        over.shoulderOffset = limit + 0.5
+        let overScheme = SchemeCatalog.make(id) as! ControlScheme
+        overScheme.layout(over)
+        let moved = { (s: ControlScheme) in shoulderRects(s)[.zl]!.minY - shoulderRects(homeScheme)[.zl]!.minY }
+        let u = shoulderRects(farScheme)[.zl]!.width / 1.9
+        check(LayoutCheck.problems(farScheme.controls, in: ctx.safeBounds).isEmpty, "\(name) \(id): max shoulder drop leaves a problem")
+        check(abs(moved(farScheme) - limit * u) < u * 0.1 + 1, "\(name) \(id): the slider maximum \(limit) is not reached (\(moved(farScheme) / u))")
+        check(moved(overScheme) <= moved(farScheme) + 1, "\(name) \(id): the shoulders move past the slider maximum")
+    }
+}
+
+// MARK: Nearest-button assignment
+
+do {
+    let r: CGFloat = 30
+    let a = HitTarget(id: "A", centre: CGPoint(x: 100, y: 0), halfSize: CGSize(width: r, height: r), isCircle: true)
+    let b = HitTarget(id: "B", centre: CGPoint(x: 171, y: 0), halfSize: CGSize(width: r, height: r), isCircle: true)
+    let both = [a, b]
+    func hit(_ x: CGFloat, _ y: CGFloat = 0, reach: CGFloat = 1.4, contact: CGFloat = 0,
+             bias: CGPoint = .zero, current: String? = nil) -> String? {
+        HitResolver.resolve(CGPoint(x: x, y: y), targets: both, reachFactor: reach,
+                            contactRadius: contact, bias: bias, current: current)
+    }
+    check(hit(100) == "A" && hit(171) == "B", "nearest: a touch on a button's centre gets that button")
+    check(hit(133) == "A", "nearest: a touch in the gap, nearer A, goes to A")
+    check(hit(138) == "B", "nearest: a touch in the gap, nearer B, goes to B")
+    check(hit(60) == "A", "nearest: just outside the drawn edge (within 1.4x) still counts")
+    check(hit(100, 45) == nil, "nearest: a touch outside the reach goes nowhere")
+    check(hit(60, 0, reach: 1.0) == nil, "nearest: with no tolerance an edge miss goes nowhere")
+    check(hit(100, 45, contact: 8) == "A", "nearest: a wide contact area extends the reach")
+    check(hit(60, 0, bias: CGPoint(x: 6, y: 0)) == "A" && hit(133, 0, bias: CGPoint(x: 6, y: 0)) == "B",
+          "nearest: the bias shifts where the touch is read")
+    check(hit(135, current: "A") == "A" && hit(135, current: "B") == "B", "nearest: a finger on the seam keeps the button it holds")
+    check(hit(160, current: "A") == "B", "nearest: sliding well onto B hands over from A")
+    check(hit(100 + 29, 29, reach: 1.15) == "A", "nearest: a round button's frame corner presses it at Normal")
+    check(hit(150, current: "A") == "B" && hit(150, current: "B") == "B", "nearest: a point inside B while holding A switches to B")
+    let pill = HitTarget(id: "ZL", centre: CGPoint(x: 0, y: 0), halfSize: CGSize(width: 60, height: 20), isCircle: false)
+    check(HitResolver.resolve(CGPoint(x: 50, y: 24), targets: [pill], reachFactor: 1.4) == "ZL", "nearest: a shoulder's reach follows its shorter side")
+    check(HitResolver.resolve(CGPoint(x: 50, y: 40), targets: [pill], reachFactor: 1.4) == nil, "nearest: and stops there")
 }
 
 print("\(passes) passed, \(failures) failed")
