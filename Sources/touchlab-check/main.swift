@@ -1128,7 +1128,7 @@ for device in arcDevices() {
         let arc = ArcPad()
         let eng = PadEngine(scheme: arc, output: out, context: ctx)
         for set in arc.hands {
-            let buttons: [PadButton] = set.side == .right ? [.x, .a, .b, .y] : [.up, .right, .down, .left]
+            let buttons: [PadButton] = set.side == .right ? [.a, .b, .x, .y] : [.up, .right, .down, .left]
             for b in buttons {
                 guard let c = arc.controls.first(where: { $0.button == b }) else { check(false, "arc: no \(b)"); continue }
                 let (r, phi) = set.polar(c.shape.center)
@@ -1162,7 +1162,21 @@ for device in arcDevices() {
     check(out.held.isEmpty, "arc: nothing stuck")
 }
 
-// Calibration end to end: two thumbs sweep known arcs, the scheme fits and re-lays out.
+// Calibration end to end: guided, left thumb then right, review, Done. Then it locks.
+func sweep(_ eng: PadEngine, id: Int, pivot: CGPoint, side: ArcSide, radius: CGFloat, from: CGFloat, to: CGFloat, t0: Double) {
+    var seed: UInt64 = UInt64(id) &* 977
+    func jitter() -> CGFloat {
+        seed = seed &* 6364136223846793005 &+ 1442695040888963407
+        return CGFloat(Double(seed >> 11) / Double(1 << 53) - 0.5) * 6
+    }
+    func at(_ phi: CGFloat) -> CGPoint {
+        CGPoint(x: pivot.x + side.inboardSign * radius * sin(phi) + jitter(), y: pivot.y - radius * cos(phi) + jitter())
+    }
+    eng.began(id, at: at(from), time: t0)
+    for i in 1...100 { eng.moved(id, to: at(from + (to - from) * CGFloat(i) / 100), time: t0 + Double(i) * 0.02) }
+    eng.ended(id, at: at(to), time: t0 + 2.1)
+}
+
 do {
     let device = TargetDevice.all.first { $0.name == "iPad mini" }!
     let ctx = device.context(.stacked)
@@ -1172,32 +1186,29 @@ do {
     arc.onProfiles = { saved = $0 }
     let eng = PadEngine(scheme: arc, output: out, context: ctx)
     let u = ctx.unit
-    // Right thumb pivots below-right of the screen; left mirrored. Sweeps of ~55 degrees.
     let rp = CGPoint(x: ctx.size.width - 10, y: ctx.size.height + 40), lp = CGPoint(x: 10, y: ctx.size.height + 40)
     let rad: CGFloat = 6.2 * u
-    var seed: UInt64 = 42
-    func jitter() -> CGFloat {
-        seed = seed &* 6364136223846793005 &+ 1442695040888963407
-        return CGFloat(Double(seed >> 11) / Double(1 << 53) - 0.5) * 6
-    }
-    arc.startCalibration()
-    check(arc.isCalibrating && eng.claims(CGPoint(x: 5, y: 5)), "arc: calibration claims the whole screen")
-    var t = 0.0
-    eng.began(1, at: CGPoint(x: rp.x - rad * sin(0.35), y: rp.y - rad * cos(0.35)), time: t)
-    eng.began(2, at: CGPoint(x: lp.x + rad * sin(0.35), y: lp.y - rad * cos(0.35)), time: t)
-    for i in 0...120 {
-        t = Double(i) * 0.04
-        let phi = 0.35 + 0.9 * CGFloat(i) / 120
-        eng.moved(1, to: CGPoint(x: rp.x - rad * sin(phi) + jitter(), y: rp.y - rad * cos(phi) + jitter()), time: t)
-        eng.moved(2, to: CGPoint(x: lp.x + rad * sin(phi) + jitter(), y: lp.y - rad * cos(phi) + jitter()), time: t)
-        eng.tick(time: t)
-    }
+    check(!arc.isLocked && !arc.hasCalibration, "arc: unlocked until the first calibration completes")
+    check(arc.startCalibration() && arc.calibrationPhase == .left && eng.claims(CGPoint(x: 5, y: 5)), "arc: calibration starts with the left thumb and claims the screen")
+    check(arc.calibrationPrompt.contains("left thumb"), "arc: prompt names the thumb")
+    // A tap is not a sweep: stay on the left thumb with a note.
+    eng.began(5, at: CGPoint(x: 200, y: 500), time: 0); eng.ended(5, at: CGPoint(x: 200, y: 500), time: 0.1)
+    check(arc.calibrationPhase == .left && arc.calibrationNote != nil, "arc: a tap is not a sweep")
+    sweep(eng, id: 1, pivot: lp, side: .left, radius: rad, from: 0.35, to: 1.25, t0: 1)
+    check(arc.calibrationPhase == .right, "arc: left sweep accepted, now the right thumb")
+    sweep(eng, id: 2, pivot: rp, side: .right, radius: rad, from: 0.35, to: 1.25, t0: 4)
+    check(arc.calibrationPhase == .review, "arc: both swept, review")
     check(out.held.isEmpty && out.log.isEmpty, "arc: a calibration sweep presses nothing")
-    eng.tick(time: 5.2)
-    check(!arc.isCalibrating, "arc: calibration ends after five seconds")
-    eng.ended(1, at: .zero, time: 5.3); eng.ended(2, at: .zero, time: 5.3)
+    check(!arc.render(pressed: [], sticks: [:]).isEmpty, "arc: review renders")
+    // Redo throws the sweeps away; do it once, then redo for real.
+    arc.redoCalibration()
+    check(arc.calibrationPhase == .left, "arc: redo starts over")
+    sweep(eng, id: 3, pivot: lp, side: .left, radius: rad, from: 0.35, to: 1.25, t0: 8)
+    sweep(eng, id: 4, pivot: rp, side: .right, radius: rad, from: 0.35, to: 1.25, t0: 11)
+    arc.acceptCalibration()
+    check(!arc.isCalibrating && arc.isLocked && arc.hasCalibration, "arc: Done saves and locks")
     let prof = saved["landscape"]
-    check(prof?.left != nil && prof?.right != nil, "arc: both hands calibrated, got \(String(describing: prof))")
+    check(prof?.left != nil && prof?.right != nil && prof?.locked == true, "arc: both hands saved, got \(String(describing: prof))")
     if let r = prof?.right {
         let short = Double(min(ctx.size.width, ctx.size.height))
         check(abs(r.radius * short - Double(rad)) < 0.08 * Double(rad), "arc: fitted radius \(r.radius * short) vs \(rad)")
@@ -1210,24 +1221,106 @@ do {
     let json = ArcPad.encode(saved)
     check(ArcPad.decode(json) == saved, "arc: calibration round-trips through JSON")
     check(ArcPad.decode("garbage").isEmpty && ArcPad.decode("{\"landscape\":{\"right\":{\"pivotX\":1e999}}}").isEmpty, "arc: bad saved data loads as nothing")
-    // A fresh scheme with the saved JSON lays out the same way; portrait has its own (empty) profile.
     let again = ArcPad(profiles: ArcPad.decode(json))
     again.layout(ctx)
-    check(again.hands == arc.hands, "arc: saved calibration reproduces the layout")
+    check(again.hands == arc.hands && again.isLocked, "arc: saved calibration reproduces the layout and the lock")
     again.layout(TargetDevice.portraitVariants.first { $0.name == "iPad mini portrait" }!.context(.stacked))
-    check(again.hands.allSatisfy { !$0.calibrated }, "arc: calibration is per orientation")
-    // Skipping leaves everything as it was; reset returns the default arc.
-    arc.startCalibration(); arc.skipCalibration()
-    check(arc.hands.allSatisfy { $0.calibrated }, "arc: skipping keeps the calibration")
-    arc.resetCalibration()
-    check(arc.hands.allSatisfy { !$0.calibrated }, "arc: reset returns the default arc")
-    // A garbage sweep (a tap) is rejected and the default stays.
+    check(again.hands.allSatisfy { !$0.calibrated } && !again.isLocked, "arc: calibration and lock are per orientation")
+
+    // LOCKED: nothing can start, nothing can be dragged, play still works.
+    let before = arc.controls.map(\.shape)
+    check(!arc.startCalibration() && !arc.isCalibrating, "arc: locked refuses calibration")
+    check(!arc.setFineTuning(true) && !arc.isFineTuning, "arc: locked refuses fine-tuning")
+    let a = arc.controls.first { $0.button == .a }!.shape.center
+    let hand = arc.hands.first { $0.side == .right }!
+    let (ra, pa) = hand.polar(a)
+    eng.began(20, at: a, time: 20)
+    check(out.held == [.a], "arc: locked, a press still plays")
+    eng.moved(20, to: hand.point(r: ra + 40, phi: pa + 0.3), time: 20.1)
+    eng.ended(20, at: a, time: 20.2)
+    check(arc.controls.map(\.shape) == before && saved["landscape"]?.rightTweaks == nil, "arc: locked, a drag moves nothing")
+
+    // UNLOCKED: fine-tune by dragging along the arc and in/out, per hand, persisted. Done on
+    // a window with no video so the geometry, not the margins, decides where things go.
+    arc.setLocked(false)
+    check(!arc.isLocked && saved["landscape"]?.locked == false, "arc: unlock persists")
+    check(arc.setFineTuning(true) && arc.isFineTuning, "arc: unlocked allows fine-tuning")
+    arc.setFineTuning(false)
+    arc.resetToDefault()
+    let open = LayoutContext(size: CGSize(width: 1376, height: 1032), safeInsets: Insets(top: 24, bottom: 20))
+    let tarc = ArcPad()
+    var tsaved: [String: ArcProfile] = [:]
+    tarc.onProfiles = { tsaved = $0 }
+    let teng = PadEngine(scheme: tarc, output: out, context: open)
+    check(tarc.setFineTuning(true), "arc: fine-tune on")
+    out.log.removeAll()
+    let ta = tarc.controls.first { $0.button == .a }!.shape.center
+    let thand = tarc.hands.first { $0.side == .right }!
+    let leftBefore = tarc.controls.first { $0.button == .left }!.shape.center
+    let (tra, tpa) = thand.polar(ta)
+    teng.began(21, at: ta, time: 30)
+    check(out.log.isEmpty && out.held.isEmpty, "arc: fine-tune presses nothing")
+    for i in 1...10 { teng.moved(21, to: thand.point(r: tra + 3 * CGFloat(i), phi: tpa + 0.02 * CGFloat(i)), time: 30 + Double(i) * 0.02) }
+    teng.ended(21, at: ta, time: 31)
+    let ta2 = tarc.controls.first { $0.button == .a }!.shape.center
+    let (tra2, tpa2) = tarc.hands.first { $0.side == .right }!.polar(ta2)
+    check(abs((tpa2 - tpa) - 0.2) < 0.05, "arc: dragged 0.2 rad along the arc, moved \(tpa2 - tpa)")
+    check(abs((tra2 - tra) - 30) < 3, "arc: dragged 30pt out, moved \(tra2 - tra)")
+    check(tarc.controls.first { $0.button == .left }!.shape.center == leftBefore, "arc: the other hand is untouched")
+    check(tsaved["landscape"]?.rightTweaks?["arc"] != nil && tsaved["landscape"]?.leftTweaks == nil, "arc: fine-tune saved for that hand only")
+    let tuned = ArcPad(profiles: ArcPad.decode(ArcPad.encode(tsaved)))
+    tuned.layout(open)
+    check(tuned.controls.map(\.shape) == tarc.controls.map(\.shape), "arc: fine-tuning persists exactly")
+    check(LayoutCheck.problems(tarc.controls, in: open.safeBounds).isEmpty, "arc: fine-tuned layout has no overlaps")
+    // Drag the left stick on its own.
+    let ls = tarc.controls.first { if case .stick(.left, _, _) = $0.kind { return true } else { return false } }!.shape.center
+    teng.began(22, at: ls, time: 40)
+    teng.moved(22, to: CGPoint(x: ls.x + 25, y: ls.y), time: 40.1)
+    teng.ended(22, at: ls, time: 40.2)
+    check(tsaved["landscape"]?.leftTweaks?["stick"] != nil, "arc: any control can be dragged, saved under its hand")
+    tarc.setLocked(true)
+    check(!tarc.isFineTuning, "arc: locking ends fine-tuning")
+    let frozen = tarc.controls.map(\.shape)
+    teng.began(23, at: tarc.controls.first { $0.button == .a }!.shape.center, time: 50)
+    teng.moved(23, to: CGPoint(x: 900, y: 500), time: 50.1)
+    teng.ended(23, at: .zero, time: 50.2)
+    check(tarc.controls.map(\.shape) == frozen, "arc: locked again, drags move nothing")
+    tarc.setLocked(false)
+    tarc.resetToDefault()
+    check(!tarc.hasCalibration && tsaved["landscape"] == nil, "arc: reset clears tweaks")
+    arc.resetToDefault()
     arc.startCalibration()
-    let e2 = PadEngine(scheme: arc, output: out, context: ctx)
-    e2.began(9, at: CGPoint(x: 700, y: 600), time: 0)
-    e2.moved(9, to: CGPoint(x: 701, y: 600), time: 0.1)
-    e2.tick(time: 5.5)
-    check(arc.hands.allSatisfy { !$0.calibrated }, "arc: a tap is not a sweep")
+    check(arc.startCalibration() && arc.isCalibrating, "arc: recalibrate available when unlocked")
+    arc.cancelCalibration()
+}
+
+// Overlap: nothing covers the video when there is margin, the stacked layouts all fit, and
+// a screen the video fills falls back to the placement that covers least, logged once.
+do {
+    var lines: [String] = []
+    ArcPad.logSink = { lines.append($0) }
+    ArcPad.logged.removeAll()
+    for d in (TargetDevice.all + TargetDevice.portraitVariants) {
+        let ctx = d.context(.stacked)
+        let arc = ArcPad(); arc.layout(ctx)
+        check(arc.avoidance != .none && !arc.usingFallback, "arc: \(d.name) stacked has margin and must avoid the video, got \(arc.avoidance)")
+    }
+    check(lines.isEmpty, "arc: no fallback log when everything fits, got \(lines)")
+    let se = TargetDevice.all.first { $0.name == "iPhone SE" }!.context(.single)
+    let full = ArcPad(); full.layout(se)
+    check(full.avoidance == .none && !full.usingFallback, "arc: a video that fills the screen falls back to least overlap")
+    check(LayoutCheck.problems(full.controls, in: se.safeBounds).isEmpty, "arc: and still nothing overlaps each other")
+    let again = ArcPad(); again.layout(se); again.layout(se)
+    check(lines.count == 1, "arc: the fallback is logged once, got \(lines.count)")
+    // Least overlap: no worse than the plain Zone-style arrangement over the same video.
+    let zone = GamePadArrangement.build(se)
+    func covered(_ cs: [PadControl]) -> CGFloat {
+        cs.reduce(0) { acc, c in
+            let i = c.shape.boundingBox.intersection(se.videoRects[0])
+            return acc + (i.isNull ? 0 : i.width * i.height)
+        }
+    }
+    check(covered(full.controls) <= covered(zone), "arc: covers no more of the video than the plain layout")
 }
 
 print("\(passes) passed, \(failures) failed")

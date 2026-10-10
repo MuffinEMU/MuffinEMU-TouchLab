@@ -165,7 +165,10 @@ public final class TouchPadView: UIView {
     public override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         // No other finger is down, so anything the engine still holds is a leaked touch whose end never arrived.
         if let all = event?.allTouches, all.count == touches.count { engine.cancelAll() }
-        for t in touches { engine.began(id(t), at: t.location(in: self), time: t.timestamp) }
+        for t in touches {
+            (engine.scheme as? ArcPad)?.contactRadius = t.majorRadius
+            engine.began(id(t), at: t.location(in: self), time: t.timestamp)
+        }
         changed()
     }
 
@@ -173,6 +176,7 @@ public final class TouchPadView: UIView {
         for t in touches {
             // Coalesced touches: every intermediate sample, so a fast flick across two
             // buttons or a quick stick snap is not reduced to its endpoints.
+            (engine.scheme as? ArcPad)?.contactRadius = t.majorRadius
             for c in event?.coalescedTouches(for: t) ?? [t] {
                 engine.moved(id(t), to: c.location(in: self), time: c.timestamp)
             }
