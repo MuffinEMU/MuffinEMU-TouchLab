@@ -406,7 +406,7 @@ do {
             let lim = StickMath.gateFraction(g, angle: a)
             let atEdge = StickMath.value(offset: dir * travel, travel: travel, tuning: tuning)
             let past = StickMath.value(offset: dir * (travel + 3 * extra), travel: travel, tuning: tuning)
-            check(near(atEdge.magnitude, Double(lim), 1e-6), "edge value is the gate limit at \(deg)deg (\(g)): \(atEdge.magnitude)")
+            check(near(atEdge.magnitude, (Double(lim) - tuning.deadzone) / (1 - tuning.deadzone), 1e-6), "edge value is the gate limit, rescaled past the deadzone (as on the pad) at \(deg)deg (\(g)): \(atEdge.magnitude)")
             check(near(past.magnitude, atEdge.magnitude, 1e-9) && abs(past.x) <= 1 && abs(past.y) <= 1,
                   "beyond the edge adds no output at \(deg)deg (\(g))")
             let knob = StickMath.knobOffset(offset: dir * (travel + 3 * extra), travel: travel, gate: g)
@@ -792,6 +792,262 @@ do {
     let pill = HitTarget(id: "ZL", centre: CGPoint(x: 0, y: 0), halfSize: CGSize(width: 60, height: 20), isCircle: false)
     check(HitResolver.resolve(CGPoint(x: 50, y: 24), targets: [pill], reachFactor: 1.4) == "ZL", "nearest: a shoulder's reach follows its shorter side")
     check(HitResolver.resolve(CGPoint(x: 50, y: 40), targets: [pill], reachFactor: 1.4) == nil, "nearest: and stops there")
+}
+
+// MARK: Shared settings: every scheme gives the same stick output as MuffinEMU's own pad
+
+/// A literal copy of the stick maths in MuffinEMU's own pad (JoystickControl.report and the
+/// clamp above it in ControllerPad.swift). `dx`/`dy` are the finger's offset from the ring's
+/// centre in points, +y down; the result is the console value, +y up.
+func gen1Stick(dx: CGFloat, dy: CGFloat, travel: CGFloat, deadzone: Double, curve: Double, octagon: Bool) -> (x: Double, y: Double) {
+    func radiusFraction(_ angle: CGFloat) -> CGFloat {
+        if !octagon { return 1 }
+        let wedge = CGFloat.pi / 4
+        var offset = angle.truncatingRemainder(dividingBy: wedge)
+        if offset < 0 { offset += wedge }
+        return cos(wedge / 2) / cos(offset - wedge / 2)
+    }
+    let dead = CGFloat(min(max(deadzone, 0), 0.30))
+    let curve = CGFloat(min(max(curve, 1), 2.5))
+    let distance = (dx * dx + dy * dy).squareRoot()
+    let reach = travel * radiusFraction(atan2(dy, dx))
+    let deflection = travel > 0 ? min(distance, reach) / travel : 0
+    guard deflection > dead, distance > 0 else { return (0, 0) }
+    var magnitude = (deflection - dead) / (1 - dead)
+    if curve != 1 { magnitude = CGFloat(pow(Double(magnitude), Double(curve))) }
+    return (Double(dx / distance * magnitude), Double(-dy / distance * magnitude))
+}
+
+func settingsContext(_ settings: PadSettings, _ display: TargetDevice.Display = .stacked) -> LayoutContext {
+    var c = ipad.context(display)
+    c.scale = settings.scale; c.stick = settings.stick; c.calibration = settings.calibration
+    c.tolerance = settings.tolerance; c.stickSpacing = settings.stickSpacing; c.shoulderOffset = settings.shoulderOffset
+    return c
+}
+
+do {
+    // 1. The shared function itself, against the pad's, over a grid of settings and positions.
+    let travel: CGFloat = 80
+    var worst = 0.0
+    for dead in [0.0, 0.06, 0.15, 0.30] {
+        for curve in [1.0, 1.6, 2.5] {
+            for gate in StickTuning.Gate.allCases {
+                let tuning = StickTuning(deadzone: dead, curve: curve, gate: gate)
+                for deg in stride(from: 0.0, to: 360.0, by: 7.5) {
+                    for r in [0.0, 0.03, 0.06, 0.1, 0.3, 0.5, 0.8, 0.93, 1.0, 1.1, 1.3] {
+                        let a = CGFloat(deg * .pi / 180)
+                        let dx = cos(a) * CGFloat(r) * travel, dy = sin(a) * CGFloat(r) * travel
+                        let mine = StickMath.value(offset: CGPoint(x: dx, y: dy), travel: travel, tuning: tuning)
+                        let ref = gen1Stick(dx: dx, dy: dy, travel: travel, deadzone: dead, curve: curve, octagon: gate == .octagon)
+                        worst = max(worst, abs(mine.x - ref.x), abs(mine.y - ref.y))
+                    }
+                }
+            }
+        }
+    }
+    check(worst < 1e-12, "StickMath.value equals the pad's formula over the whole grid (worst difference \(worst))")
+    let wild = StickTuning(deadzone: 5, curve: 0.2, gate: .round)
+    check(StickMath.value(offset: CGPoint(x: 80, y: 0), travel: 80, tuning: wild)
+          == StickMath.value(offset: CGPoint(x: 80, y: 0), travel: 80, tuning: StickTuning(deadzone: 0.30, curve: 1, gate: .round)),
+          "out-of-range deadzone and curve are clamped to the pad's ranges")
+}
+
+/// The first stick control of the given side that a scheme lays out, and where a finger starts.
+func stickControl(_ s: ControlScheme, _ side: PadStick) -> (PadControl, travel: CGFloat, floating: Bool)? {
+    for c in s.controls {
+        switch c.kind {
+        case let .stick(st, travel, _) where st == side: return (c, travel, false)
+        case let .floatingStick(st, travel, _, _, _) where st == side: return (c, travel, true)
+        default: break
+        }
+    }
+    return nil
+}
+
+do {
+    let tunings = [StickTuning(), StickTuning(deadzone: 0, curve: 1, gate: .round),
+                   StickTuning(deadzone: 0.2, curve: 2.2, gate: .octagon),
+                   StickTuning(deadzone: 0.3, curve: 1.4, gate: .round)]
+    var compared = 0
+    var schemesWithSticks: [String] = []
+    for info in SchemeCatalog.all {
+        for tuning in tunings {
+            var settings = PadSettings(); settings.stick = tuning
+            let r = Recorder()
+            let e = PadEngine(scheme: SchemeCatalog.make(info.id), output: r, context: settingsContext(settings))
+            let s = e.scheme as! ControlScheme
+            for side in [PadStick.left, .right] {
+                guard let (c, travel, floating) = stickControl(s, side) else { continue }
+                if !schemesWithSticks.contains(info.id) { schemesWithSticks.append(info.id) }
+                let origin = floating ? CGPoint(x: c.shape.boundingBox.midX, y: c.shape.boundingBox.midY) : c.shape.center
+                for deg in stride(from: 0.0, to: 360.0, by: 15.0) {
+                    for rr in [0.02, 0.07, 0.25, 0.6, 0.95, 1.0, 1.1] {
+                        let a = CGFloat(deg * .pi / 180)
+                        let dx = cos(a) * CGFloat(rr) * travel, dy = sin(a) * CGFloat(rr) * travel
+                        e.began(1, at: origin, time: 0)
+                        e.moved(1, to: origin + CGPoint(x: dx, y: dy), time: 0.1)
+                        let got = r.sticks[side] ?? .zero
+                        let ref = gen1Stick(dx: dx, dy: dy, travel: travel, deadzone: tuning.deadzone,
+                                            curve: tuning.curve, octagon: tuning.gate == .octagon)
+                        compared += 1
+                        check(abs(got.x - ref.x) < 1e-9 && abs(got.y - ref.y) < 1e-9,
+                              "\(info.id) \(side) stick at \(deg)deg r\(rr), \(tuning): got \(got), the pad gives \(ref)")
+                        e.ended(1, at: origin, time: 0.2)
+                    }
+                }
+            }
+        }
+    }
+    check(compared > 500, "stick parity compared \(compared) positions across \(schemesWithSticks)")
+    check(["zone", "float", "adaptive", "frame"].allSatisfy { schemesWithSticks.contains($0) }, "every stick scheme was exercised: \(schemesWithSticks)")
+}
+
+do {
+    // 2. Defaults: the unset PadSettings lays out exactly what the bare context did.
+    let bare = ipad.context(.stacked)
+    let viaSettings = LayoutContext(size: bare.size, safeInsets: bare.safeInsets, videoRects: bare.videoRects,
+                                    touchscreenRect: bare.touchscreenRect, settings: PadSettings())
+    check(viaSettings == bare, "default PadSettings is the default layout context")
+    for info in SchemeCatalog.all {
+        let a = SchemeCatalog.make(info.id) as! ControlScheme, b = SchemeCatalog.make(info.id) as! ControlScheme
+        a.layout(bare); b.layout(viaSettings)
+        check(a.controls.map(\.shape) == b.controls.map(\.shape) && a.controls.map(\.reach) == b.controls.map(\.reach),
+              "\(info.id): default settings change no control or catchment")
+    }
+    check(StickCalibration().isIdentity && StickCalibration(encoded: "").isIdentity, "no calibration stored = identity")
+    let zero = StickMath.value(offset: CGPoint(x: 40, y: -25), travel: 80, tuning: StickTuning())
+    check(zero == StickMath.value(offset: CGPoint(x: 40, y: -25), travel: 80, tuning: StickTuning(),
+                                  calibration: .identity, fixedBase: false), "identity calibration changes nothing")
+}
+
+do {
+    // 3. Calibration maps the player's reach and rest onto the same output, in every scheme.
+    let cal = StickCalibration(fullThrow: 0.7, centre: CGPoint(x: 0.1, y: -0.05), jitter: 0.12)
+    for info in SchemeCatalog.all {
+        var settings = PadSettings(); settings.calibration = StickCalibrations(left: cal, right: cal)
+        let r = Recorder()
+        let e = PadEngine(scheme: SchemeCatalog.make(info.id), output: r, context: settingsContext(settings))
+        let s = e.scheme as! ControlScheme
+        for side in [PadStick.left, .right] {
+            guard let (c, travel, floating) = stickControl(s, side) else { continue }
+            let origin = floating ? CGPoint(x: c.shape.boundingBox.midX, y: c.shape.boundingBox.midY) : c.shape.center
+            let rest = floating ? CGPoint.zero : CGPoint(x: cal.centre.x * travel, y: cal.centre.y * travel)
+            e.began(1, at: origin + rest, time: 0)
+            check((r.sticks[side] ?? .zero) == .zero, "\(info.id) \(side): the calibrated rest spot is the centre")
+            let wobble = travel * CGFloat(cal.jitter) * 0.9
+            e.moved(1, to: origin + rest + CGPoint(x: wobble, y: 0), time: 0.05)
+            check((r.sticks[side] ?? .zero) == .zero, "\(info.id) \(side): wobble inside the calibrated rest is ignored")
+            e.moved(1, to: origin + rest + CGPoint(x: travel * 0.7, y: 0), time: 0.1)
+            check(near(r.sticks[side]?.x ?? 0, 1, 1e-9), "\(info.id) \(side): the calibrated throw is full output, got \(String(describing: r.sticks[side]))")
+            e.moved(1, to: origin + rest + CGPoint(x: -travel * 0.7, y: 0), time: 0.15)
+            check(near(r.sticks[side]?.x ?? 0, -1, 1e-9), "\(info.id) \(side): and full the other way")
+            e.moved(1, to: origin + rest + CGPoint(x: 0, y: -travel * 0.35), time: 0.2)
+            let half = r.sticks[side]?.y ?? 0
+            let want = (0.5 - 0.12 / 0.7) / (1 - 0.12 / 0.7)
+            check(near(half, want, 1e-9), "\(info.id) \(side): half the calibrated throw is half output past the deadzone: \(half) vs \(want)")
+            e.ended(1, at: origin, time: 0.3)
+        }
+    }
+    // Racing steers the same way: their throw is full lock, their wobble is not steering.
+    var settings = PadSettings(); settings.calibration = StickCalibrations(left: cal)
+    let r = Recorder()
+    let e = PadEngine(scheme: SchemeCatalog.make("racing"), output: r, context: settingsContext(settings))
+    let (spec, zone) = steerSpec(e.scheme as! ControlScheme)
+    let start = CGPoint(x: zone.midX, y: zone.midY)
+    e.began(1, at: start, time: 0)
+    e.moved(1, to: start + CGPoint(x: spec.lockX * 0.11 * 0.7, y: 0), time: 0.1)
+    check((r.sticks[.left]?.x ?? 0) == 0, "racing: wobble inside the calibrated rest does not steer")
+    e.moved(1, to: start + CGPoint(x: spec.lockX * 0.7, y: 0), time: 0.2)
+    check(near(r.sticks[.left]?.x ?? 0, 1, 1e-9), "racing: the calibrated throw is full lock")
+    e.ended(1, at: start, time: 0.3)
+    // Racing deadzone and curve are the same numbers as the sticks'.
+    var t = PadSettings(); t.stick = StickTuning(deadzone: 0.2, curve: 2, gate: .octagon)
+    let r2 = Recorder()
+    let e2 = PadEngine(scheme: SchemeCatalog.make("racing"), output: r2, context: settingsContext(t))
+    let (spec2, zone2) = steerSpec(e2.scheme as! ControlScheme)
+    let start2 = CGPoint(x: zone2.midX, y: zone2.midY)
+    e2.began(1, at: start2, time: 0)
+    e2.moved(1, to: start2 + CGPoint(x: spec2.lockX * 0.6, y: 0), time: 0.1)
+    check(near(r2.sticks[.left]?.x ?? 0, pow((0.6 - 0.2) / 0.8, 2), 1e-9), "racing: deadzone and curve mean what they do on the sticks")
+}
+
+do {
+    // 4. Touch tolerance: never less than the scheme's own reach, and more at a higher level.
+    func reaches(_ id: String, _ tol: PadTolerance?) -> [CGFloat] {
+        var settings = PadSettings(); settings.tolerance = tol
+        let s = SchemeCatalog.make(id) as! ControlScheme
+        s.layout(settingsContext(settings))
+        return s.controls.map(\.reach)
+    }
+    for info in SchemeCatalog.all {
+        let base = reaches(info.id, nil), normal = reaches(info.id, .normal)
+        let generous = reaches(info.id, .generous), very = reaches(info.id, .veryGenerous)
+        check(zip(base, normal).allSatisfy { $0 <= $1 } && zip(normal, generous).allSatisfy { $0 <= $1 }
+              && zip(generous, very).allSatisfy { $0 <= $1 }, "\(info.id): tolerance only ever widens a catchment")
+        check(zip(base, very).contains { $0 < $1 }, "\(info.id): the most generous level widens something")
+    }
+    // A touch just outside a button is taken at the most generous level, and not before.
+    var settings = PadSettings(); settings.tolerance = .veryGenerous
+    let s = SchemeCatalog.make("float") as! ControlScheme
+    let plain = SchemeCatalog.make("float") as! ControlScheme
+    s.layout(settingsContext(settings)); plain.layout(settingsContext(PadSettings()))
+    let a = plain.controls.first { $0.button == .x }!
+    let r = a.shape.boundingBox.width / 2
+    let p = a.shape.center + CGPoint(x: r + 0.6 * r, y: 0)
+    check(s.claims(p) || !plain.claims(p), "float: a touch 0.6 radii outside a button is claimed when tolerance is raised")
+}
+
+do {
+    // 5. The calibration flow.
+    let travel: CGFloat = 80
+    func run(radius: Double, sectors: Int = 8, rest: CGPoint = CGPoint(x: 4, y: -3), wobble: CGFloat = 1) -> StickCalibration? {
+        var session = StickCalibrationSession(travel: travel)
+        var t = 0.0
+        session.begin(at: rest, time: t)
+        while session.phase == .rest {
+            t += 0.05
+            let k = CGFloat(Int(t * 20) % 2 == 0 ? 1 : -1)
+            session.move(to: rest + CGPoint(x: wobble * k, y: -wobble * k), time: t)
+        }
+        for i in 0..<sectors {
+            let a = CGFloat(i) * .pi / 4
+            let lim = Double(StickMath.gateFraction(.octagon, angle: a))
+            let r = CGFloat(radius * lim) * travel
+            t += 0.05
+            session.move(to: rest + CGPoint(x: cos(a) * r, y: -sin(a) * r), time: t)
+        }
+        return session.lift()
+    }
+    let part = run(radius: 0.8)
+    check(part != nil && near(part!.fullThrow, 0.8, 0.01), "calibration: a 0.8 sweep reads 0.8, got \(String(describing: part))")
+    check(part != nil && near(Double(part!.centre.x), 4.0 / 80, 0.002) && near(Double(part!.centre.y), -3.0 / 80, 0.002),
+          "calibration: the rest spot is recorded, got \(String(describing: part?.centre))")
+    check(part != nil && part!.jitter > 0.01 && part!.jitter < 0.05, "calibration: the rest wobble is recorded, got \(String(describing: part?.jitter))")
+    let whole = run(radius: 1.0, rest: .zero, wobble: 0)
+    check(whole?.fullThrow == 1 && whole?.centre == .zero, "calibration: a player who uses the whole ring keeps the default throw and centre")
+    check(run(radius: 0.8, sectors: 4) == nil, "calibration: lifting before reaching most of the ring saves nothing")
+    var early = StickCalibrationSession(travel: travel)
+    early.begin(at: .zero, time: 0)
+    check(early.lift() == nil && early.phase == .waiting, "calibration: lifting during the rest saves nothing and starts over")
+    var wander = StickCalibrationSession(travel: travel)
+    wander.begin(at: .zero, time: 0)
+    wander.move(to: CGPoint(x: 60, y: 0), time: 0.5)
+    wander.move(to: CGPoint(x: 60, y: 0), time: 1.0)
+    check(wander.phase == .rest, "calibration: a thumb that wanders off has not rested")
+    if let p = part {
+        let back = StickCalibration(encoded: p.encoded)
+        check(near(back.fullThrow, p.fullThrow, 1e-4) && near(Double(back.centre.x), Double(p.centre.x), 1e-4) && near(back.jitter, p.jitter, 1e-4),
+              "calibration: stored string round-trips")
+    }
+    check(StickCalibration(encoded: "nonsense").isIdentity && StickCalibration(encoded: "9,9,9,9").fullThrow == 1.15,
+          "calibration: a bad stored string is the identity and out-of-range values are clamped")
+}
+
+do {
+    // 6. Haptics, opacity, scale and shoulders reach the shared settings unchanged.
+    var s = PadSettings(); s.scale = 1.3; s.shoulderOffset = 0.8; s.stickSpacing = -1
+    let c = LayoutContext(size: CGSize(width: 800, height: 400), settings: s)
+    check(c.scale == 1.3 && c.shoulderOffset == 0.8 && c.stickSpacing == -1, "PadSettings reaches the layout context")
 }
 
 print("\(passes) passed, \(failures) failed")
