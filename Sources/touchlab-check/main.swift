@@ -375,5 +375,181 @@ do {
           "aspectFit pillarboxes in a wide rect, got \(tall)")
 }
 
+// MARK: Arc
+
+func arcDevices() -> [TargetDevice] {
+    let names = ["iPhone SE", "iPhone 16 Pro Max", "iPad mini", "iPad Pro 13"]
+    return TargetDevice.all.filter { names.contains($0.name) } + TargetDevice.portraitVariants
+}
+
+// Circle fit: recovers a known pivot and radius from noisy thumb-sweep samples.
+do {
+    var seed: UInt64 = 0x9E3779B97F4A7C15
+    func rnd() -> Double {
+        seed = seed &* 6364136223846793005 &+ 1442695040888963407
+        return Double(seed >> 11) / Double(1 << 53)
+    }
+    func gauss() -> Double { (-2 * log(max(rnd(), 1e-12))).squareRoot() * cos(2 * .pi * rnd()) }
+    for (cx, cy, r, a0, a1) in [(1180.0, 600.0, 260.0, 1.9, 3.0), (-40.0, 700.0, 190.0, -0.1, 1.2), (400.0, 900.0, 320.0, 1.1, 1.8)] {
+        var pts: [CGPoint] = []
+        for _ in 0..<80 {
+            let a = a0 + (a1 - a0) * rnd()
+            let rr = r + 3 * gauss()
+            pts.append(CGPoint(x: cx + rr * cos(a), y: cy - rr * sin(a) + 0))
+        }
+        // (y is flipped on screen; the circle is the same circle.)
+        if let fit = ArcMath.fitCircle(pts) {
+            let ce = hypot(Double(fit.center.x) - cx, Double(fit.center.y) - cy)
+            check(ce < 0.12 * r, "arc: fit pivot off by \(ce) for r=\(r)")
+            check(abs(Double(fit.radius) - r) < 0.08 * r, "arc: fit radius \(fit.radius) vs \(r)")
+            check(Double(fit.rms) < 6, "arc: residual \(fit.rms) should be near the 3pt noise")
+        } else {
+            check(false, "arc: no fit for r=\(r)")
+        }
+    }
+    // Noise-free samples are recovered exactly.
+    let exact = (0..<20).map { i -> CGPoint in let a = 1.2 + Double(i) * 0.05; return CGPoint(x: 700 + 300 * cos(a), y: 500 - 300 * sin(a)) }
+    if let f = ArcMath.fitCircle(exact) {
+        check(hypot(Double(f.center.x) - 700, Double(f.center.y) - 500) < 0.01 && abs(Double(f.radius) - 300) < 0.01, "arc: exact fit, got \(f)")
+    } else { check(false, "arc: exact samples must fit") }
+    let line = (0..<30).map { CGPoint(x: Double($0) * 5, y: 100 + Double($0) * 2) }
+    check(ArcMath.fitCircle(line) == nil, "arc: a straight sweep is not a circle")
+    check(ArcMath.fitCircle([CGPoint(x: 1, y: 1)]) == nil, "arc: too few points")
+}
+
+// Layout on every device and orientation, with and without calibration.
+for device in arcDevices() {
+    for display in TargetDevice.Display.allCases {
+        let ctx = device.context(display)
+        let arc = ArcPad()
+        arc.layout(ctx)
+        let where_ = "Arc / \(device.name) / \(display.rawValue)"
+        check(!arc.usingFallback, "\(where_): fell back to the plain arrangement")
+        let problems = LayoutCheck.problems(arc.controls, in: ctx.safeBounds)
+        check(problems.isEmpty, "\(where_): \(problems.joined(separator: "; "))")
+        if arc.avoidance != .none {
+            let keep = arc.avoidance == .video ? ctx.videoRects + [ctx.touchscreenRect!] : [ctx.touchscreenRect!]
+            for c in arc.controls where !c.isZone {
+                for k in keep where k.insetBy(dx: 1, dy: 1).intersects(c.shape.boundingBox) {
+                    check(false, "\(where_): \(c.label) covers the video/GamePad rect")
+                }
+            }
+        }
+        if display == .stacked && device.name != "iPad Pro 13 portrait" {
+            check(arc.avoidance != .none, "\(where_): stacked screens leave margins, Arc must stay off the video (got \(arc.avoidance))")
+        }
+    }
+}
+
+// Angular assignment: radial over/undershoot keeps the button; sliding along the arc moves it.
+for device in arcDevices() {
+    let ctx = device.context(.stacked)
+    for (rad, name) in [(-0.8, "short"), (0.0, "on"), (0.9, "far")] {
+        let out = Recorder()
+        let arc = ArcPad()
+        let eng = PadEngine(scheme: arc, output: out, context: ctx)
+        for set in arc.hands {
+            let buttons: [PadButton] = set.side == .right ? [.x, .a, .b, .y] : [.up, .right, .down, .left]
+            for b in buttons {
+                guard let c = arc.controls.first(where: { $0.button == b }) else { check(false, "arc: no \(b)"); continue }
+                let (r, phi) = set.polar(c.shape.center)
+                let p = set.point(r: r + CGFloat(rad) * arc.layoutUnit, phi: phi)
+                eng.began(1, at: p, time: 0)
+                check(out.held == [b], "arc \(device.name): \(name) press of \(b) gave \(out.held.map(\.description).sorted())")
+                eng.ended(1, at: p, time: 0.1)
+                check(out.held.isEmpty, "arc: release after \(b)")
+            }
+        }
+    }
+    // Slide A -> B along the arc, with a wobbling radius.
+    let out = Recorder()
+    let arc = ArcPad()
+    let eng = PadEngine(scheme: arc, output: out, context: ctx)
+    let hand = arc.hands.first { $0.side == .right }!
+    let a = arc.controls.first { $0.button == .a }!.shape.center
+    let b = arc.controls.first { $0.button == .b }!.shape.center
+    let (r, pa) = hand.polar(a), (_, pb) = hand.polar(b)
+    eng.began(1, at: a, time: 0)
+    check(out.held == [.a], "arc: touch A")
+    for i in 1...10 {
+        let t = CGFloat(i) / 10
+        let wobble = (i % 2 == 0 ? 0.5 : -0.5) * arc.layoutUnit
+        eng.moved(1, to: hand.point(r: r + wobble, phi: pa + (pb - pa) * t), time: Double(i) * 0.01)
+    }
+    check(out.held == [.b], "arc: slid A to B, holding \(out.held)")
+    eng.moved(1, to: CGPoint(x: ctx.size.width / 2, y: ctx.safeBounds.minY + 4), time: 1)
+    check(out.held.isEmpty, "arc: far off the arc lets go")
+    eng.ended(1, at: .zero, time: 2)
+    check(out.held.isEmpty, "arc: nothing stuck")
+}
+
+// Calibration end to end: two thumbs sweep known arcs, the scheme fits and re-lays out.
+do {
+    let device = TargetDevice.all.first { $0.name == "iPad mini" }!
+    let ctx = device.context(.stacked)
+    let out = Recorder()
+    let arc = ArcPad()
+    var saved: [String: ArcProfile] = [:]
+    arc.onProfiles = { saved = $0 }
+    let eng = PadEngine(scheme: arc, output: out, context: ctx)
+    let u = ctx.unit
+    // Right thumb pivots below-right of the screen; left mirrored. Sweeps of ~55 degrees.
+    let rp = CGPoint(x: ctx.size.width - 10, y: ctx.size.height + 40), lp = CGPoint(x: 10, y: ctx.size.height + 40)
+    let rad: CGFloat = 6.2 * u
+    var seed: UInt64 = 42
+    func jitter() -> CGFloat {
+        seed = seed &* 6364136223846793005 &+ 1442695040888963407
+        return CGFloat(Double(seed >> 11) / Double(1 << 53) - 0.5) * 6
+    }
+    arc.startCalibration()
+    check(arc.isCalibrating && eng.claims(CGPoint(x: 5, y: 5)), "arc: calibration claims the whole screen")
+    var t = 0.0
+    eng.began(1, at: CGPoint(x: rp.x - rad * sin(0.35), y: rp.y - rad * cos(0.35)), time: t)
+    eng.began(2, at: CGPoint(x: lp.x + rad * sin(0.35), y: lp.y - rad * cos(0.35)), time: t)
+    for i in 0...120 {
+        t = Double(i) * 0.04
+        let phi = 0.35 + 0.9 * CGFloat(i) / 120
+        eng.moved(1, to: CGPoint(x: rp.x - rad * sin(phi) + jitter(), y: rp.y - rad * cos(phi) + jitter()), time: t)
+        eng.moved(2, to: CGPoint(x: lp.x + rad * sin(phi) + jitter(), y: lp.y - rad * cos(phi) + jitter()), time: t)
+        eng.tick(time: t)
+    }
+    check(out.held.isEmpty && out.log.isEmpty, "arc: a calibration sweep presses nothing")
+    eng.tick(time: 5.2)
+    check(!arc.isCalibrating, "arc: calibration ends after five seconds")
+    eng.ended(1, at: .zero, time: 5.3); eng.ended(2, at: .zero, time: 5.3)
+    let prof = saved["landscape"]
+    check(prof?.left != nil && prof?.right != nil, "arc: both hands calibrated, got \(String(describing: prof))")
+    if let r = prof?.right {
+        let short = Double(min(ctx.size.width, ctx.size.height))
+        check(abs(r.radius * short - Double(rad)) < 0.08 * Double(rad), "arc: fitted radius \(r.radius * short) vs \(rad)")
+        check(abs(r.pivotX * Double(ctx.size.width) - Double(rp.x)) < 0.1 * Double(rad), "arc: fitted pivot x")
+        check(abs(r.pivotY * Double(ctx.size.height) - Double(rp.y)) < 0.1 * Double(rad), "arc: fitted pivot y")
+    }
+    check(arc.hands.allSatisfy { $0.calibrated }, "arc: layout uses the calibration")
+    check(LayoutCheck.problems(arc.controls, in: ctx.safeBounds).isEmpty, "arc: calibrated layout has no overlaps")
+    check(arc.avoidance != .none, "arc: calibrated layout still avoids the video")
+    let json = ArcPad.encode(saved)
+    check(ArcPad.decode(json) == saved, "arc: calibration round-trips through JSON")
+    check(ArcPad.decode("garbage").isEmpty && ArcPad.decode("{\"landscape\":{\"right\":{\"pivotX\":1e999}}}").isEmpty, "arc: bad saved data loads as nothing")
+    // A fresh scheme with the saved JSON lays out the same way; portrait has its own (empty) profile.
+    let again = ArcPad(profiles: ArcPad.decode(json))
+    again.layout(ctx)
+    check(again.hands == arc.hands, "arc: saved calibration reproduces the layout")
+    again.layout(TargetDevice.portraitVariants.first { $0.name == "iPad mini portrait" }!.context(.stacked))
+    check(again.hands.allSatisfy { !$0.calibrated }, "arc: calibration is per orientation")
+    // Skipping leaves everything as it was; reset returns the default arc.
+    arc.startCalibration(); arc.skipCalibration()
+    check(arc.hands.allSatisfy { $0.calibrated }, "arc: skipping keeps the calibration")
+    arc.resetCalibration()
+    check(arc.hands.allSatisfy { !$0.calibrated }, "arc: reset returns the default arc")
+    // A garbage sweep (a tap) is rejected and the default stays.
+    arc.startCalibration()
+    let e2 = PadEngine(scheme: arc, output: out, context: ctx)
+    e2.began(9, at: CGPoint(x: 700, y: 600), time: 0)
+    e2.moved(9, to: CGPoint(x: 701, y: 600), time: 0.1)
+    e2.tick(time: 5.5)
+    check(arc.hands.allSatisfy { !$0.calibrated }, "arc: a tap is not a sweep")
+}
+
 print("\(passes) passed, \(failures) failed")
 exit(Int32(min(failures, 125)))

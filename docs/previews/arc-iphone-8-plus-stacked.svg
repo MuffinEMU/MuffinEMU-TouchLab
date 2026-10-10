@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="736" height="414" viewBox="0 0 736.0 414.0" font-family="-apple-system, Helvetica, sans-serif">
+<rect width="100%" height="100%" fill="#101014"/>
+<rect x="0.0" y="0.0" width="736.0" height="414.0" fill="none" stroke="#2a2a33" stroke-dasharray="6 6"/>
+<rect x="184.0" y="0.0" width="368.0" height="207.0" fill="#23324a"/>
+<text x="368.0" y="103.5" fill="#4d6690" font-size="22" text-anchor="middle">TV</text>
+<rect x="184.0" y="207.0" width="368.0" height="207.0" fill="#23324a"/>
+<text x="368.0" y="310.5" fill="#4d6690" font-size="22" text-anchor="middle">GamePad</text>
+<rect x="184.0" y="207.0" width="368.0" height="207.0" rx="6.0" fill="none" stroke="#4d6690" stroke-width="1.5" opacity="0.12"/>
+<circle cx="728.9" cy="215.3" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="716.8" cy="216.0" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="704.8" cy="217.4" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="692.9" cy="219.5" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="681.1" cy="222.2" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="669.5" cy="225.6" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="658.1" cy="229.6" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="647.0" cy="234.2" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="636.1" cy="239.4" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="625.5" cy="245.3" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="615.2" cy="251.7" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="605.4" cy="258.7" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="595.9" cy="266.2" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="586.9" cy="274.2" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="578.3" cy="282.7" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="570.2" cy="291.7" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="562.6" cy="301.1" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="555.6" cy="310.9" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="7.1" cy="215.3" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="19.2" cy="216.0" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="31.2" cy="217.4" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="43.1" cy="219.5" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="54.9" cy="222.2" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="66.5" cy="225.6" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="77.9" cy="229.6" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="89.0" cy="234.2" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="99.9" cy="239.4" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="110.5" cy="245.3" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="120.8" cy="251.7" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="130.6" cy="258.7" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="140.1" cy="266.2" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="149.1" cy="274.2" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="157.7" cy="282.7" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="165.8" cy="291.7" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="173.4" cy="301.1" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="180.4" cy="310.9" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
+<circle cx="712.0" cy="216.5" r="20.1" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
+<text x="712.0" y="222.6" fill="#24242c" font-size="16.9" font-weight="600" text-anchor="middle" opacity="1.0">X</text>
+<circle cx="661.9" cy="228.2" r="20.1" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
+<text x="661.9" y="234.3" fill="#24242c" font-size="16.9" font-weight="600" text-anchor="middle" opacity="1.0">A</text>
+<circle cx="615.9" cy="251.3" r="20.1" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
+<text x="615.9" y="257.4" fill="#24242c" font-size="16.9" font-weight="600" text-anchor="middle" opacity="1.0">B</text>
+<circle cx="576.6" cy="284.5" r="20.1" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
+<text x="576.6" y="290.6" fill="#24242c" font-size="16.9" font-weight="600" text-anchor="middle" opacity="1.0">Y</text>
+<circle cx="658.0" cy="337.9" r="74.3" fill="#3a3a44" stroke="#6a6a76" stroke-width="1.5" opacity="0.9"/>
+<circle cx="658.0" cy="337.9" r="27.4" fill="#b8b8c4" stroke="#e0e0ea" stroke-width="1.5" opacity="0.9"/>
+<text x="658.0" y="346.2" fill="#24242c" font-size="23.0" font-weight="600" text-anchor="middle" opacity="1.0">R</text>
+<rect x="655.0" y="100.4" width="60.4" height="36.3" rx="9.5" fill="#8d8d99" stroke="#b5b5c0" stroke-width="1.5" opacity="0.9"/>
+<text x="685.2" y="124.0" fill="#111116" font-size="15.2" font-weight="600" text-anchor="middle" opacity="1.0">ZR</text>
+<rect x="587.2" y="119.2" width="60.4" height="36.3" rx="9.5" fill="#8d8d99" stroke="#b5b5c0" stroke-width="1.5" opacity="0.9"/>
+<text x="617.4" y="142.8" fill="#111116" font-size="15.2" font-weight="600" text-anchor="middle" opacity="1.0">R</text>
+<circle cx="579.6" cy="170.6" r="15.6" fill="#6e6e7a" stroke="#9a9aa6" stroke-width="1.5" opacity="0.9"/>
+<text x="579.6" y="175.3" fill="#f2f2f6" font-size="13.1" font-weight="600" text-anchor="middle" opacity="1.0">+</text>
+<circle cx="24.0" cy="216.5" r="20.1" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
+<text x="24.0" y="222.6" fill="#24242c" font-size="16.9" font-weight="600" text-anchor="middle" opacity="1.0">▲</text>
+<circle cx="74.1" cy="228.2" r="20.1" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
+<text x="74.1" y="234.3" fill="#24242c" font-size="16.9" font-weight="600" text-anchor="middle" opacity="1.0">▶</text>
+<circle cx="120.1" cy="251.3" r="20.1" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
+<text x="120.1" y="257.4" fill="#24242c" font-size="16.9" font-weight="600" text-anchor="middle" opacity="1.0">▼</text>
+<circle cx="159.4" cy="284.5" r="20.1" fill="#c9c9d2" stroke="#ededf3" stroke-width="1.5" opacity="0.9"/>
+<text x="159.4" y="290.6" fill="#24242c" font-size="16.9" font-weight="600" text-anchor="middle" opacity="1.0">◀</text>
+<circle cx="78.0" cy="337.9" r="74.3" fill="#3a3a44" stroke="#6a6a76" stroke-width="1.5" opacity="0.9"/>
+<circle cx="78.0" cy="337.9" r="27.4" fill="#b8b8c4" stroke="#e0e0ea" stroke-width="1.5" opacity="0.9"/>
+<text x="78.0" y="346.2" fill="#24242c" font-size="23.0" font-weight="600" text-anchor="middle" opacity="1.0">L</text>
+<rect x="20.5" y="100.4" width="60.4" height="36.3" rx="9.5" fill="#8d8d99" stroke="#b5b5c0" stroke-width="1.5" opacity="0.9"/>
+<text x="50.8" y="124.0" fill="#111116" font-size="15.2" font-weight="600" text-anchor="middle" opacity="1.0">ZL</text>
+<rect x="88.4" y="119.2" width="60.4" height="36.3" rx="9.5" fill="#8d8d99" stroke="#b5b5c0" stroke-width="1.5" opacity="0.9"/>
+<text x="118.6" y="142.8" fill="#111116" font-size="15.2" font-weight="600" text-anchor="middle" opacity="1.0">L</text>
+<circle cx="156.4" cy="170.6" r="15.6" fill="#6e6e7a" stroke="#9a9aa6" stroke-width="1.5" opacity="0.9"/>
+<text x="156.4" y="175.3" fill="#f2f2f6" font-size="13.1" font-weight="600" text-anchor="middle" opacity="1.0">−</text>
+<circle cx="161.3" cy="107.8" r="15.6" fill="#6e6e7a" stroke="#9a9aa6" stroke-width="1.5" opacity="0.9"/>
+<text x="161.3" y="112.5" fill="#f2f2f6" font-size="13.1" font-weight="600" text-anchor="middle" opacity="1.0">⌂</text>
+<text x="12" y="404.0" fill="#8888a0" font-size="13">Arc - iPhone 8 Plus - stacked</text>
+</svg>
