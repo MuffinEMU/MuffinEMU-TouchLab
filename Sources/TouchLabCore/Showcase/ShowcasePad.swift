@@ -208,8 +208,15 @@ public final class ShowcasePad: ControlScheme {
             out.append(PadControl(.button(.stickR), shape: .circle(center: c, radius: rad), role: .dot, label: "R3",
                                   reach: 0.08 * D, priority: 2))
         }
-        button("plus", .plus, role: .system, reach: 0.25 * D)
-        button("minus", .minus, role: .system, reach: 0.25 * D)
+        // + then - as a pair on one row, + nudged a little left to make room, - on its right.
+        if let (pc, pr) = circle("plus"), let (_, mr) = circle("minus") {
+            let plus = CGPoint(x: pc.x - 0.3 * D, y: pc.y)
+            let minus = CGPoint(x: plus.x + pr + mr + 0.3 * D, y: pc.y)
+            out.append(PadControl(.button(.plus), shape: .circle(center: plus, radius: pr), role: .system,
+                                  label: PadButton.plus.description, reach: 0.25 * D))
+            out.append(PadControl(.button(.minus), shape: .circle(center: minus, radius: mr), role: .system,
+                                  label: PadButton.minus.description, reach: 0.25 * D))
+        }
         // HOME keeps its hardware slot unless that is on the picture.
         if let (c, rad) = circle("HOME"),
            !avoid.contains(where: { $0.insetBy(dx: 1, dy: 1).intersects(PadShape.circle(center: c, radius: rad).boundingBox) }) {
