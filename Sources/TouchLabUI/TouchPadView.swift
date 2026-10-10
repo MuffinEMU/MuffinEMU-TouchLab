@@ -278,6 +278,12 @@ public final class TouchPadView: UIView {
 
     public override func draw(_ rect: CGRect) {
         guard let g = UIGraphicsGetCurrentContext() else { return }
+        // Showcase has its own look (shadow, rim, dish, octagonal gate), as a scene to draw.
+        if let showcase = engine.scheme as? ShowcasePad {
+            ShowcaseDrawing.draw(showcase.scene(pressed: engine.litButtons(), sticks: engine.mixer.sticks),
+                                 in: g, opacity: controlOpacity)
+            return
+        }
         for e in engine.render() { PadDrawing.draw(e, in: g, opacity: controlOpacity) }
     }
 }
@@ -361,6 +367,8 @@ public struct TouchPad: UIViewRepresentable {
     public var rectSpace: TouchPadView.RectSpace
     public var extraInsets: Insets
     public var onChange: ((PadEngine) -> Void)?
+    /// Called once with the live view, for a host that needs to reach it (Arc's calibration overlay).
+    public var onView: ((TouchPadView) -> Void)?
 
     public init(schemeID: String, output: PadOutput, touchscreenRect: CGRect? = nil, videoRects: [CGRect] = [],
                 scale: CGFloat = 1, stickSpacing: CGFloat = 0, shoulderOffset: CGFloat = 0, opacity: CGFloat = 0.85, haptics: Bool = true, revision: Int = 0,
@@ -411,6 +419,7 @@ public struct TouchPad: UIViewRepresentable {
         let view = TouchPadView(scheme: makeScheme(schemeID), output: output)
         context.coordinator.revision = revision
         apply(to: view)
+        onView?(view)
         return view
     }
 
