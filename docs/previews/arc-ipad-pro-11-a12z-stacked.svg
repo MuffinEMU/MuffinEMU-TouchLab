@@ -43,11 +43,11 @@
 <circle cx="229.5" cy="606.4" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
 <circle cx="240.3" cy="617.4" r="1.7" fill="#55555f" stroke="#8a8a96" stroke-width="1.5" opacity="0.3"/>
 <circle cx="1166.1" cy="514.5" r="25.8" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
-<text x="1166.1" y="522.3" fill="#24242c" font-size="21.7" font-weight="600" text-anchor="middle" opacity="1.0">X</text>
+<text x="1166.1" y="522.3" fill="#24242c" font-size="21.7" font-weight="600" text-anchor="middle" opacity="1.0">A</text>
 <circle cx="1101.3" cy="526.6" r="25.8" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
-<text x="1101.3" y="534.4" fill="#24242c" font-size="21.7" font-weight="600" text-anchor="middle" opacity="1.0">A</text>
+<text x="1101.3" y="534.4" fill="#24242c" font-size="21.7" font-weight="600" text-anchor="middle" opacity="1.0">B</text>
 <circle cx="1040.2" cy="551.4" r="25.8" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
-<text x="1040.2" y="559.2" fill="#24242c" font-size="21.7" font-weight="600" text-anchor="middle" opacity="1.0">B</text>
+<text x="1040.2" y="559.2" fill="#24242c" font-size="21.7" font-weight="600" text-anchor="middle" opacity="1.0">X</text>
 <circle cx="985.3" cy="587.9" r="25.8" fill="#e9e9ef" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
 <text x="985.3" y="595.7" fill="#24242c" font-size="21.7" font-weight="600" text-anchor="middle" opacity="1.0">Y</text>
 <circle cx="1099.3" cy="685.7" r="101.5" fill="#3a3a44" stroke="#6a6a76" stroke-width="1.5" opacity="0.9"/>
