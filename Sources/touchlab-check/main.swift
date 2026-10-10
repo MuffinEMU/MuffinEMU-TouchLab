@@ -765,6 +765,7 @@ for (name, size, insets) in [
     }
 }
 
+// BEGIN nearest-hit checks
 // MARK: Nearest-button assignment
 
 do {
@@ -794,6 +795,8 @@ do {
     check(HitResolver.resolve(CGPoint(x: 50, y: 24), targets: [pill], reachFactor: 1.4) == "ZL", "nearest: a shoulder's reach follows its shorter side")
     check(HitResolver.resolve(CGPoint(x: 50, y: 40), targets: [pill], reachFactor: 1.4) == nil, "nearest: and stops there")
 }
+
+// END nearest-hit checks
 
 // MARK: Shared settings: every scheme gives the same stick output as MuffinEMU's own pad
 
