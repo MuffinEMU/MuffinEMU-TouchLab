@@ -178,8 +178,8 @@ func aWidth(_ scheme: ControlScheme) -> CGFloat {
 for device in ["iPad Pro 11 (A12Z)", "iPhone 16"].compactMap({ name in TargetDevice.all.first { $0.name == name } }) {
     for display in TargetDevice.Display.allCases {
         let ctx = device.context(display)
-        // Arc places every button by the player's own reach, so it has no separate A size.
-        for info in SchemeCatalog.all where info.id != ArcPad.schemeInfo.id {
+        // Arc places every button by the player's own reach and Showcase is the GamePad at life size, so neither has a separate A size.
+        for info in SchemeCatalog.all where info.id != ArcPad.schemeInfo.id && info.id != ShowcasePad.schemeInfo.id {
             let where_ = "A size / \(info.name) / \(device.name) / \(display.rawValue)"
             func laidOut(_ a: CGFloat) -> ControlScheme {
                 let s = SchemeCatalog.make(info.id, aScale: a) as! ControlScheme
@@ -1321,6 +1321,211 @@ do {
         }
     }
     check(covered(full.controls) <= covered(zone), "arc: covers no more of the video than the plain layout")
+}
+
+
+// MARK: Showcase
+// The showcase pad's geometry, transplant and colours ported as pure Swift, and the TouchLab
+// scheme built on them.
+
+do {
+    func rect(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat) -> CGRect { CGRect(x: x, y: y, width: w, height: h) }
+    func centre(_ r: ShowcaseResolved, _ id: String) -> CGPoint { r.controls[id]!.centre }
+    func nearPt(_ p: CGPoint, _ x: CGFloat, _ y: CGFloat) -> Bool { abs(p.x - x) < 0.02 && abs(p.y - y) < 0.02 }
+
+    // Expected values are PreviewPadStore.resolve's own, taken by compiling the showcase
+    // pad's GamePadGeometry.swift and MuffinPadCustomisation.swift unchanged on the same inputs.
+    func resolve(_ preset: ShowcaseLayoutPreset, _ mode: ShowcaseLayout.DisplayMode, size: CGSize, safe: CGRect,
+                 ppi: CGFloat, phone: Bool) -> ShowcaseResolved {
+        ShowcaseResolver.resolve(preset: preset, displayMode: mode, container: size, safeArea: safe,
+                                 pointsPerInch: ppi, isPhone: phone)
+    }
+    let pro11 = resolve(.native, .fit, size: CGSize(width: 1194, height: 834), safe: rect(0, 24, 1194, 790), ppi: 132, phone: false)
+    check(abs(pro11.unit - 55.22) < 0.01, "showcase: iPad Pro 11 life-size D is 10.625 mm at 132 ppi, got \(pro11.unit)")
+    check(nearPt(centre(pro11, "A"), 1105.62, 573.81) && nearPt(centre(pro11, "stickL"), 88.37, 429.15)
+          && nearPt(centre(pro11, "dpad"), 141.39, 573.81) && nearPt(centre(pro11, "HOME"), 597.00, 765.96),
+          "showcase: iPad Pro 11 fit/native positions differ from PreviewPadStore")
+    check(abs(pro11.video.height - 671.62) < 0.01, "showcase: iPad Pro 11 fit picture is full-bleed 16:9")
+
+    let se = resolve(.native, .native, size: CGSize(width: 667, height: 375), safe: rect(0, 0, 667, 375), ppi: 163, phone: true)
+    check(abs(se.unit - 54.95) < 0.01 && nearPt(centre(se, "plus"), 448.58, 198.38) && nearPt(centre(se, "minus"), 218.42, 198.38),
+          "showcase: iPhone SE native: +/- at the elbow, unit 54.95, got \(se.unit)")
+    check(abs(se.video.minX - 256.34) < 0.01 && abs(se.video.width - 154.32) < 0.01, "showcase: iPhone SE native picture rect \(se.video)")
+
+    let seT = resolve(.iPadPro2020, .fit, size: CGSize(width: 667, height: 375), safe: rect(0, 0, 667, 375), ppi: 163, phone: true)
+    check(abs(seT.unit - 41.40) < 0.01 && nearPt(centre(seT, "A"), 600.74, 194.91) && nearPt(centre(seT, "stickR"), 600.74, 86.45)
+          && nearPt(centre(seT, "plus"), 516.28, 295.10), "showcase: iPad Pro preset transplanted to iPhone SE differs from PadPresetFitter, unit \(seT.unit)")
+    let miniT = resolve(.iPadPro2020, .native, size: CGSize(width: 1133, height: 744), safe: rect(0, 24, 1133, 700), ppi: 163, phone: false)
+    check(abs(miniT.unit - 48.66) < 0.01 && nearPt(centre(miniT, "A"), 1055.11, 251.43) && nearPt(centre(miniT, "HOME"), 558.71, 547.26),
+          "showcase: iPad Pro preset on iPad mini native differs from PadPresetFitter, unit \(miniT.unit)")
+    let up = resolve(.compact, .fit, size: CGSize(width: 440, height: 956), safe: rect(0, 62, 440, 860), ppi: 460.0 / 3, phone: true)
+    check(abs(up.unit - 44.90) < 0.01 && nearPt(centre(up, "A"), 368.14, 311.05) && abs(up.video.minY - 62) < 0.01 && abs(up.video.height - 247.5) < 0.01,
+          "showcase: phone upright is forced to Native (picture on top), got \(up.unit) \(up.video)")
+
+    // Colour files: the showcase's JSON, byte for byte readable both ways.
+    let json = "{\"version\":1,\"name\":\"Mine\",\"outline\":{\"hex\":\"#101010\"},\"fills\":{\"default\":{\"hex\":\"#336699\",\"alpha\":0.5}},\"glyphs\":{\"default\":{\"hex\":\"#FFFFFF\"}},\"pressedAlphaBoost\":0.12}"
+    if let file = try? ShowcaseColourFile.decode(Data(json.utf8)) {
+        check(file.fill("A").hex == "#336699" && abs(file.alpha("A", pressed: true) - 0.62) < 1e-9, "showcase: .muffinclr fill/alpha lookup")
+        check((try? ShowcaseColourFile.decode(file.encoded())) == file, "showcase: .muffinclr round-trips")
+    } else { check(false, "showcase: a .muffinclr written by the showcase pad failed to decode") }
+    for p in ShowcaseColourPreset.allCases {
+        check((try? ShowcaseColourFile.decode(p.file.encoded())) == p.file, "showcase: \(p.rawValue) round-trips as .muffinclr")
+    }
+    check(ShowcaseColourPresets.wiiUWhite.fill("A").hex == "#F1F1F1" && ShowcaseColourPresets.wiiUWhite.fill("dpad").hex == "#BDBDC1"
+          && ShowcaseColourPresets.superFamicom.fill("Y").hex == "#D14B45", "showcase: preset colours")
+    check(abs(ShowcaseDeviceMetrics.measurement(identifier: "iPad8,9", nativePixels: CGSize(width: 1668, height: 2388), scale: 2, isPad: true, calibrated: nil).pointsPerInch - 132) < 0.01
+          && abs(ShowcaseDeviceMetrics.measurement(identifier: "iPad16,1", nativePixels: .zero, scale: 2, isPad: true, calibrated: nil).pointsPerInch - 163) < 0.01,
+          "showcase: points per inch from model")
+
+    // Every review device, both orientations, both display modes, both host layouts, every preset.
+    var overlays = 0, clears = 0
+    var smallest: (CGFloat, String) = (1, "")
+    for device in TargetDevice.showcaseReview {
+        for mode in ShowcaseLayout.DisplayMode.allCases {
+            for display in TargetDevice.Display.allCases {
+                for preset in ShowcaseLayoutPreset.allCases {
+                    let pad = ShowcasePad()
+                    pad.pointsPerInch = device.showcasePointsPerInch
+                    pad.layoutPreset = preset
+                    pad.displayMode = mode
+                    let ctx = device.context(display)
+                    pad.layout(ctx)
+                    let where_ = "Showcase / \(device.name) / \(mode.rawValue) / \(display.rawValue) / \(preset.rawValue)"
+                    let problems = LayoutCheck.problems(pad.controls, in: ctx.safeBounds)
+                    check(problems.isEmpty, "\(where_): \(problems.joined(separator: "; "))")
+                    var reach = Set<PadButton>(), sticks = 0
+                    for c in pad.controls {
+                        switch c.kind {
+                        case .button(let b): reach.insert(b)
+                        case .dpad: reach.formUnion([.up, .down, .left, .right, .stickL])
+                        case .stick: sticks += 1
+                        default: break
+                        }
+                    }
+                    check(reach == Set(PadButton.allCases) && sticks == 2, "\(where_): missing \(Set(PadButton.allCases).subtracting(reach))")
+                    let avoid: [CGRect]
+                    switch pad.arrangement {
+                    case .native:
+                        let r = pad.pictureRect
+                        check(r != nil && abs(r!.width / r!.height - 16.0 / 9) < 0.01 && ctx.safeBounds.insetBy(dx: -1, dy: -1).contains(r!),
+                              "\(where_): native picture rect \(String(describing: r))")
+                        avoid = r.map { [$0] } ?? []
+                    case .clear:
+                        clears += 1
+                        avoid = ctx.videoRects
+                        check(pad.unitPoints >= pad.minimumUnit - 0.01, "\(where_): clear layout under the minimum size")
+                    case .overlay:
+                        overlays += 1
+                        avoid = []
+                        check(mode == .fit, "\(where_): only Fit may float over the picture")
+                    }
+                    for c in pad.controls where !avoid.isEmpty {
+                        check(!avoid.contains { $0.insetBy(dx: 1, dy: 1).intersects(c.shape.boundingBox) },
+                              "\(where_): \(c.label) covers the picture")
+                    }
+                    if pad.lifeSizeFraction < smallest.0 { smallest = (pad.lifeSizeFraction, where_) }
+                }
+            }
+        }
+    }
+    print("showcase: \(clears) clear, \(overlays) overlay; smallest \(Int(smallest.0 * 100))% of life size (\(smallest.1))")
+    // The GamePad stays a real touchscreen wherever Fit found a margin.
+    do {
+        let d = TargetDevice.all.first { $0.name.contains("A12Z") }!
+        let pad = ShowcasePad(); pad.pointsPerInch = 132; pad.layout(d.context(.stacked))
+        check(pad.arrangement == .clear && abs(pad.lifeSizeFraction - 1) < 0.01, "showcase: iPad Pro 11 stacked is clear at life size, got \(pad.arrangement) \(pad.lifeSizeFraction)")
+        let face = pad.controls.first { $0.button == .a }!.shape.boundingBox.width
+        check(abs(face - 10.625 * 132 / 25.4) < 0.05, "showcase: a face button is 10.625 mm across, got \(face) pt")
+    }
+    // Window sizes of every shape: Fit and Native both stay valid.
+    for mode in ShowcaseLayout.DisplayMode.allCases {
+        var bad: [String] = []
+        var w: CGFloat = 480
+        while w <= 1400 {
+            var h: CGFloat = 300
+            while h <= 1100 {
+                let ctx = LayoutContext(size: CGSize(width: w, height: h), safeInsets: Insets(top: 20, left: 0, bottom: 20, right: 0))
+                let pad = ShowcasePad(); pad.displayMode = mode; pad.layout(ctx)
+                let p = LayoutCheck.problems(pad.controls, in: ctx.safeBounds)
+                if !p.isEmpty { bad.append("\(Int(w))x\(Int(h)): \(p.first!)") }
+                h += 80
+            }
+            w += 70
+        }
+        check(bad.isEmpty, "Showcase \(mode.rawValue): \(bad.count) window sizes fail, e.g. \(bad.prefix(3).joined(separator: " | "))")
+    }
+
+    // Behaviour, through the engine, on the A12Z iPad (Fit, clear) and an iPhone (Native).
+    for (name, display, mode) in [("iPad Pro 11 (A12Z)", TargetDevice.Display.stacked, ShowcaseLayout.DisplayMode.fit),
+                                  ("iPhone 16 Pro Max", .stacked, .native)] {
+        let d = TargetDevice.all.first { $0.name == name }!
+        let r = Recorder()
+        let pad = ShowcasePad(); pad.pointsPerInch = d.showcasePointsPerInch; pad.displayMode = mode
+        let e = PadEngine(scheme: pad, output: r, context: d.context(display))
+        func at(_ b: PadButton) -> CGPoint { pad.controls.first { $0.button == b }!.shape.center }
+        for b in [PadButton.a, .b, .x, .y, .l, .r, .zl, .zr, .plus, .minus, .home, .stickR] {
+            e.began(1, at: at(b), time: 0)
+            check(r.held == [b], "showcase \(name): tap \(b) holds exactly \(b), got \(r.held)")
+            e.ended(1, at: at(b), time: 0.1)
+            check(r.held.isEmpty, "showcase \(name): \(b) released")
+        }
+        let a = at(.a), b = at(.b)
+        e.began(1, at: a, time: 1); e.moved(1, to: b, time: 1.1)
+        check(r.held == [.b], "showcase \(name): slide A to B, got \(r.held)")
+        e.cancelled(1, time: 1.2)
+        check(r.held.isEmpty, "showcase \(name): cancel releases")
+        let mid = CGPoint(x: (a.x + b.x) / 2, y: (a.y + b.y) / 2)
+        e.began(2, at: mid, time: 2)
+        check(r.held == [.a, .b], "showcase \(name): chord in the gap between A and B, got \(r.held)")
+        e.ended(2, at: mid, time: 2.1)
+        e.began(1, at: at(.zl), time: 3); e.moved(1, to: at(.l), time: 3.1)
+        check(r.held == [.l], "showcase \(name): slide ZL to L, got \(r.held)")
+        e.ended(1, at: at(.l), time: 3.2)
+        // A finger resting in the gap between the faces and the d-pad is claimed by something (gap-free).
+        let dpad = pad.controls.first { if case .dpad = $0.kind { return true }; return false }!
+        let c = dpad.shape.center, u = pad.unitPoints
+        e.began(1, at: c + CGPoint(x: 0.9 * u, y: -0.9 * u), time: 4)
+        check(r.held == [.up, .right], "showcase \(name): d-pad up-right diagonal, got \(r.held)")
+        e.moved(1, to: c + CGPoint(x: 0, y: 0.9 * u), time: 4.05)
+        check(r.held == [.down], "showcase \(name): d-pad rolls to down, got \(r.held)")
+        e.ended(1, at: c, time: 4.1)
+        e.began(1, at: c, time: 5)
+        check(r.held == [.stickL], "showcase \(name): d-pad centre is L3, got \(r.held)")
+        e.ended(1, at: c, time: 5.1)
+        let stick = pad.controls.first { if case .stick(.left, _, _) = $0.kind { return true }; return false }!
+        e.began(3, at: stick.shape.center, time: 6)
+        e.moved(3, to: stick.shape.center + CGPoint(x: 400, y: 0), time: 6.1)
+        check(near(r.sticks[.left]?.x ?? 0, 1), "showcase \(name): left stick full right, got \(String(describing: r.sticks[.left]))")
+        check(pad.scene(pressed: [], sticks: [:]).primitives.count > 40, "showcase \(name): scene has the full pad")
+        e.ended(3, at: .zero, time: 6.2)
+        check(r.sticks[.left] == .zero, "showcase \(name): stick recentres")
+        // Shared stick settings reach it: a bigger deadzone swallows a small push.
+        var ctx = d.context(display); ctx.stick = StickTuning(deadzone: 0.3, curve: 1, gate: .round)
+        e.setContext(ctx)
+        let s2 = pad.controls.first { if case .stick(.left, _, _) = $0.kind { return true }; return false }!
+        e.began(4, at: s2.shape.center, time: 7)
+        guard case let .stick(_, travel2, _) = s2.kind else { fatalError() }
+        e.moved(4, to: s2.shape.center + CGPoint(x: 0.25 * travel2, y: 0), time: 7.1)
+        check(r.sticks[.left] == .zero, "showcase \(name): stick reads context.stick (deadzone)")
+        e.ended(4, at: .zero, time: 7.2)
+    }
+
+    // Settings: preset, colour and display mode each change the pad, and colour reaches the scene.
+    do {
+        let d = TargetDevice.all.first { $0.name.contains("A12Z") }!
+        let pad = ShowcasePad(); pad.pointsPerInch = 132; pad.layout(d.context(.stacked))
+        let before = pad.controls.first { $0.button == .a }!.shape.center
+        pad.layoutPreset = .compact
+        check(pad.controls.first { $0.button == .a }!.shape.center != before && pad.lifeSizeFraction < 0.8, "showcase: Compact preset re-lays out at 70%")
+        pad.layoutPreset = .native
+        pad.displayMode = .native
+        check(pad.arrangement == .native && pad.pictureRect != nil, "showcase: display mode switches to Native")
+        let white = pad.scene(pressed: [], sticks: [:])
+        pad.colourPreset = .wiiUBlack
+        check(pad.scene(pressed: [], sticks: [:]) != white, "showcase: colour preset changes the scene")
+        let held = pad.scene(pressed: [.a], sticks: [:])
+        check(held != pad.scene(pressed: [], sticks: [:]), "showcase: a held button looks different")
+    }
 }
 
 print("\(passes) passed, \(failures) failed")
