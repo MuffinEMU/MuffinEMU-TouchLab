@@ -1540,5 +1540,100 @@ do {
     }
 }
 
+// MARK: Classic look (PadStyle) and Racing item/edge options
+
+do {
+    let ids = ["zone", "float", "adaptive", "frame", "racing"]
+    for id in ids {
+        check(PadStyle.appliesTo(id), "style: \(id) uses the shared look")
+        for device in TargetDevice.all {
+            for display in TargetDevice.Display.allCases {
+                let ctx = device.context(display)
+                let engine = PadEngine(scheme: SchemeCatalog.make(id), output: Recorder(), context: ctx)
+                let els = engine.render()
+                let base = PadStyle.scene(elements: els, size: ctx.size)
+                check(!base.primitives.isEmpty, "style: \(id) / \(device.name): empty scene")
+                // Every primitive stays finite and on a sane canvas.
+                var finite = true
+                for p in base.primitives {
+                    switch p.shape {
+                    case .circle(let c, let r): finite = finite && c.x.isFinite && c.y.isFinite && r >= 0
+                    case .rect(let r, let cr): finite = finite && r.width >= 0 && r.height >= 0 && cr >= 0
+                    case .path(let cmds): finite = finite && !cmds.isEmpty
+                    }
+                }
+                check(finite, "style: \(id) / \(device.name) / \(display.rawValue): bad primitive")
+                if device.name == "iPhone 16", display == .single {
+                    for preset in ShowcaseColourPreset.allCases {
+                        check(PadStyle.scene(elements: els, size: ctx.size, look: PadStyle.look(preset)) != base,
+                              "style: \(id) preset \(preset.rawValue) changes the look")
+                    }
+                }
+            }
+        }
+    }
+    check(!PadStyle.appliesTo("arc") && !PadStyle.appliesTo("showcase"), "style: Arc and Showcase keep their own looks")
+    check(PadStyle.cornerRadius(width: 200, height: 40) == 40 * 0.26 && PadStyle.cornerRadius(width: 900, height: 900) == 18,
+          "style: one corner rule")
+    // Pressed looks different from idle for every role.
+    let c = CGPoint(x: 50, y: 50)
+    for (role, shape) in [(RenderElement.Role.face, PadShape.circle(center: c, radius: 30)),
+                          (.shoulder, .roundedRect(CGRect(x: 0, y: 0, width: 80, height: 40), cornerRadius: 10)),
+                          (.system, .circle(center: c, radius: 20)), (.dpad, .roundedRect(CGRect(x: 0, y: 0, width: 40, height: 40), cornerRadius: 10)),
+                          (.pedal, .roundedRect(CGRect(x: 0, y: 0, width: 80, height: 90), cornerRadius: 10)),
+                          (.dot, .circle(center: c, radius: 12)), (.stickKnob, .circle(center: c, radius: 30))] {
+        for preset in PadStyle.choices {
+            let off = PadStyle.scene(elements: [RenderElement(shape: shape, role: role, label: "A")], size: CGSize(width: 100, height: 100), look: PadStyle.look(preset))
+            let on = PadStyle.scene(elements: [RenderElement(shape: shape, role: role, label: "A", lit: true)], size: CGSize(width: 100, height: 100), look: PadStyle.look(preset))
+            check(off != on, "style: \(role) held reads differently (\(PadStyle.name(preset)))")
+        }
+    }
+    check(PadSettings().colourPreset == nil, "style: default look is Classic")
+    check(PadStyle.look(nil).lit != nil && PadStyle.look(.wiiUWhite).lit == nil, "style: Classic keeps its yellow, presets use the Showcase press")
+}
+
+for placement in RacingPad.ItemPlacement.allCases {
+    for large in [false, true] {
+        for tilt in [false, true] {
+            let options = RacingPad.Options(tilt: tilt, itemPlacement: placement, largeItem: large)
+            for device in TargetDevice.all {
+                for display in TargetDevice.Display.allCases {
+                    let scheme = RacingPad(options: options)
+                    let ctx = device.context(display)
+                    scheme.layout(ctx)
+                    let where_ = "Racing \(placement)/large=\(large)/tilt=\(tilt) / \(device.name) / \(display.rawValue)"
+                    check(LayoutCheck.problems(scheme.controls, in: ctx.safeBounds).isEmpty,
+                          "\(where_): \(LayoutCheck.problems(scheme.controls, in: ctx.safeBounds).joined(separator: "; "))")
+                    let item = scheme.controls.first { $0.button == .l }
+                    check(item != nil, "\(where_): no item button")
+                    if let item, device.size.width > device.size.height, placement != .centre {
+                        // Off the centre, the item is either above the steering area or above the pedals, never over a pedal.
+                        let box = item.shape.boundingBox
+                        let overPedal = scheme.controls.contains { c in
+                            if case .pedal = c.kind { return c.shape.boundingBox.intersects(box) }
+                            return false
+                        }
+                        check(!overPedal, "\(where_): item over a pedal")
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Racing's controls leave the screen edge clear but still catch a touch right at it.
+do {
+    let ctx = ipad.context(.single)
+    let pad = RacingPad()
+    pad.layout(ctx)
+    let a = pad.controls.first { if case .pedal(let s) = $0.kind { return s == [.a] }; return false }!
+    let box = a.shape.boundingBox
+    check(box.maxX < ctx.safeBounds.maxX && box.maxY < ctx.safeBounds.maxY, "racing: accelerate stops short of the screen edge")
+    check(pad.claims(CGPoint(x: ctx.safeBounds.maxX - 0.5, y: box.midY)), "racing: but the edge itself still presses it")
+    let (_, steer) = steerSpec(pad)
+    check(steer.minX > ctx.safeBounds.minX && pad.claims(CGPoint(x: ctx.safeBounds.minX + 0.5, y: steer.midY)),
+          "racing: steering area clears the edge and still takes a touch at it")
+}
+
 print("\(passes) passed, \(failures) failed")
 exit(Int32(min(failures, 125)))

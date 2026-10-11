@@ -23,8 +23,14 @@ for info in SchemeCatalog.all where info.id != ShowcasePad.schemeInfo.id {
             let engine = PadEngine(scheme: SchemeCatalog.make(info.id), output: NullOutput(), context: ctx)
             var title = "\(info.name) - \(device.name) - \(display.rawValue)"
             if let frame = engine.scheme as? FramePad { title += " (\(frame.mode))" }
-            let svg = SVGRenderer.svg(size: ctx.size, videoRects: ctx.videoRects, safe: ctx.safeBounds,
+            let svg: String
+            if PadStyle.appliesTo(info.id) {
+                let scene = PadStyle.scene(elements: engine.render(), size: ctx.size)
+                svg = ShowcaseSVG.svg(scene: scene, videoRects: ctx.videoRects, safe: ctx.safeBounds, title: title)
+            } else {
+                svg = SVGRenderer.svg(size: ctx.size, videoRects: ctx.videoRects, safe: ctx.safeBounds,
                                       title: title, elements: engine.render())
+            }
             let slug = device.name.lowercased().replacingOccurrences(of: " ", with: "-")
                 .replacingOccurrences(of: "(", with: "").replacingOccurrences(of: ")", with: "")
             let file = "\(info.id)-\(slug)-\(display.rawValue).svg"

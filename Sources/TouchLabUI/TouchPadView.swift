@@ -20,6 +20,8 @@ public final class TouchPadView: UIView {
     public var hapticsEnabled = true
     /// Whole-pad opacity; controls, not the view, so hit testing is unaffected.
     public var controlOpacity: CGFloat = 0.85 { didSet { setNeedsDisplay() } }
+    /// Colours for the classic schemes (see `PadStyle`); nil = Classic.
+    public var colourPreset: ShowcaseColourPreset? { didSet { setNeedsDisplay() } }
     /// Called after every input change, for HUDs and diagnostics.
     public var onChange: (() -> Void)?
     /// Where the GamePad image is, in this view's coordinates; see LayoutContext.
@@ -41,7 +43,7 @@ public final class TouchPadView: UIView {
         get {
             PadSettings(stick: stickTuning, calibration: calibration, tolerance: tolerance, scale: scale,
                         opacity: controlOpacity, haptics: hapticsEnabled, stickSpacing: stickSpacing,
-                        shoulderOffset: shoulderOffset)
+                        shoulderOffset: shoulderOffset, colourPreset: colourPreset)
         }
         set {
             if stickTuning != newValue.stick { stickTuning = newValue.stick }
@@ -51,6 +53,7 @@ public final class TouchPadView: UIView {
             if stickSpacing != newValue.stickSpacing { stickSpacing = newValue.stickSpacing }
             if shoulderOffset != newValue.shoulderOffset { shoulderOffset = newValue.shoulderOffset }
             if controlOpacity != newValue.opacity { controlOpacity = newValue.opacity }
+            if colourPreset != newValue.colourPreset { colourPreset = newValue.colourPreset }
             hapticsEnabled = newValue.haptics
         }
     }
@@ -284,6 +287,12 @@ public final class TouchPadView: UIView {
                                  in: g, opacity: controlOpacity)
             return
         }
+        if PadStyle.appliesTo(engine.scheme.info.id) {
+            let scene = PadStyle.scene(elements: engine.render(), size: bounds.size,
+                                       look: PadStyle.look(colourPreset), opacity: controlOpacity)
+            ShowcaseDrawing.draw(scene, in: g, opacity: PadSettings.defaultOpacity)
+            return
+        }
         for e in engine.render() { PadDrawing.draw(e, in: g, opacity: controlOpacity) }
     }
 }
@@ -364,6 +373,7 @@ public struct TouchPad: UIViewRepresentable {
     public var stickTuning: StickTuning
     public var calibration = StickCalibrations()
     public var tolerance: PadTolerance?
+    public var colourPreset: ShowcaseColourPreset?
     public var rectSpace: TouchPadView.RectSpace
     public var extraInsets: Insets
     public var onChange: ((PadEngine) -> Void)?
@@ -407,6 +417,7 @@ public struct TouchPad: UIViewRepresentable {
                   makeScheme: makeScheme, onChange: onChange)
         self.calibration = settings.calibration
         self.tolerance = settings.tolerance
+        self.colourPreset = settings.colourPreset
     }
 
     public final class Coordinator {
@@ -437,6 +448,7 @@ public struct TouchPad: UIViewRepresentable {
         if view.stickTuning != stickTuning { view.stickTuning = stickTuning }
         if view.calibration != calibration { view.calibration = calibration }
         if view.tolerance != tolerance { view.tolerance = tolerance }
+        if view.colourPreset != colourPreset { view.colourPreset = colourPreset }
         if view.isInputEnabled != enabled { view.isInputEnabled = enabled }
         if view.touchscreenRect != touchscreenRect { view.touchscreenRect = touchscreenRect }
         if view.videoRects != videoRects { view.videoRects = videoRects }

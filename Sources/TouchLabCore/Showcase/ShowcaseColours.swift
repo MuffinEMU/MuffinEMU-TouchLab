@@ -133,7 +133,7 @@ public enum ShowcaseColourPresets {
 }
 
 /// Exactly the three the showcase pad offers.
-public enum ShowcaseColourPreset: String, CaseIterable, Identifiable {
+public enum ShowcaseColourPreset: String, CaseIterable, Identifiable, Sendable {
     case wiiUWhite, wiiUBlack, superFamicom
 
     public var id: String { rawValue }
