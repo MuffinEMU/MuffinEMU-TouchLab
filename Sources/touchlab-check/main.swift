@@ -2128,5 +2128,14 @@ do {
     check(!LayoutContext(size: CGSize(width: 10, height: 10), settings: s).showcaseStyle, "showcase style reaches the layout context")
 }
 
+// MARK: Showcase: the + / - pair nudge
+
+do {
+    check(ShowcasePad.systemPairNudge(screen: CGSize(width: 1366, height: 1024)) == CGPoint(x: -2, y: -11), "showcase: 13-inch iPad moves + / - 2 pt left, 11 pt up")
+    check(ShowcasePad.systemPairNudge(screen: CGSize(width: 1032, height: 1376)) == CGPoint(x: -2, y: -11), "showcase: the same in portrait")
+    check(ShowcasePad.systemPairNudge(screen: CGSize(width: 1194, height: 834)) == CGPoint(x: -2, y: 0), "showcase: 11-inch iPad moves + / - 2 pt left only")
+    check(ShowcasePad.systemPairNudge(screen: CGSize(width: 852, height: 393)) == CGPoint(x: -2, y: 0), "showcase: iPhone moves + / - 2 pt left only")
+}
+
 print("\(passes) passed, \(failures) failed")
 exit(Int32(min(failures, 125)))
