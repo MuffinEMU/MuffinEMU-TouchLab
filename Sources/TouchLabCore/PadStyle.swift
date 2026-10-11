@@ -258,6 +258,10 @@ struct ClassicBuilder {
             if !e.label.isEmpty {
                 text(e.label, at: box.center, size: PadStyle.TypeScale.button(box.height * 0.8), colour: ink(id, lit: e.lit).withAlpha(0.9), fade: k)
             }
+
+        case .guide, .handle:
+            // Arc's own roles; the shared look is never applied to Arc.
+            return
         }
     }
 
