@@ -1,28 +1,57 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="810" viewBox="0 0 1080.0 810.0" font-family="-apple-system, Helvetica, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="810" viewBox="0 0 1080.00 810.00" font-family="-apple-system, Helvetica, sans-serif">
+<defs>
+<filter id="sh0" x="-40%" y="-40%" width="180%" height="190%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceAlpha" stdDeviation="0.80"/><feOffset dy="1.20" result="o"/><feComponentTransfer><feFuncA type="linear" slope="0.30"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0.00" stop-color="#FFFFFF" stop-opacity="0.850"/><stop offset="0.50" stop-color="#FFFFFF" stop-opacity="0.000"/><stop offset="1.00" stop-color="#000000" stop-opacity="0.160"/></linearGradient>
+<linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0.00" stop-color="#FFFFFF" stop-opacity="0.850"/><stop offset="0.50" stop-color="#FFFFFF" stop-opacity="0.000"/><stop offset="1.00" stop-color="#000000" stop-opacity="0.160"/></linearGradient>
+<linearGradient id="g3" x1="0" y1="0" x2="0" y2="1"><stop offset="0.00" stop-color="#FFFFFF" stop-opacity="0.850"/><stop offset="0.50" stop-color="#FFFFFF" stop-opacity="0.000"/><stop offset="1.00" stop-color="#000000" stop-opacity="0.160"/></linearGradient>
+<linearGradient id="g4" x1="0" y1="0" x2="0" y2="1"><stop offset="0.00" stop-color="#FFFFFF" stop-opacity="0.850"/><stop offset="0.50" stop-color="#FFFFFF" stop-opacity="0.000"/><stop offset="1.00" stop-color="#000000" stop-opacity="0.160"/></linearGradient>
+<linearGradient id="g5" x1="0" y1="0" x2="0" y2="1"><stop offset="0.00" stop-color="#FFFFFF" stop-opacity="0.300"/><stop offset="0.50" stop-color="#FFFFFF" stop-opacity="0.000"/><stop offset="1.00" stop-color="#000000" stop-opacity="0.450"/></linearGradient>
+<linearGradient id="g6" x1="0" y1="0" x2="0" y2="1"><stop offset="0.00" stop-color="#FFFFFF" stop-opacity="0.300"/><stop offset="0.50" stop-color="#FFFFFF" stop-opacity="0.000"/><stop offset="1.00" stop-color="#000000" stop-opacity="0.450"/></linearGradient>
+<linearGradient id="g7" x1="0" y1="0" x2="0" y2="1"><stop offset="0.00" stop-color="#FFFFFF" stop-opacity="0.300"/><stop offset="0.50" stop-color="#FFFFFF" stop-opacity="0.000"/><stop offset="1.00" stop-color="#000000" stop-opacity="0.450"/></linearGradient>
+<linearGradient id="g8" x1="0" y1="0" x2="0" y2="1"><stop offset="0.00" stop-color="#FFFFFF" stop-opacity="0.300"/><stop offset="0.50" stop-color="#FFFFFF" stop-opacity="0.000"/><stop offset="1.00" stop-color="#000000" stop-opacity="0.450"/></linearGradient>
+</defs>
 <rect width="100%" height="100%" fill="#101014"/>
-<rect x="0.0" y="0.0" width="1080.0" height="810.0" fill="none" stroke="#2a2a33" stroke-dasharray="6 6"/>
-<rect x="180.0" y="0.0" width="720.0" height="405.0" fill="#23324a"/>
-<text x="540.0" y="202.5" fill="#4d6690" font-size="22" text-anchor="middle">TV</text>
-<rect x="180.0" y="405.0" width="720.0" height="405.0" fill="#23324a"/>
-<text x="540.0" y="607.5" fill="#4d6690" font-size="22" text-anchor="middle">GamePad</text>
-<rect x="180.0" y="405.0" width="720.0" height="405.0" rx="6.0" fill="none" stroke="#4d6690" stroke-width="1.5" opacity="0.12"/>
-<rect x="887.4" y="646.2" width="190.8" height="162.0" rx="21.6" fill="#d9d9e2" stroke="#ffffff" stroke-width="1.5" opacity="0.5"/>
-<text x="982.8" y="736.6" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">A</text>
-<rect x="757.8" y="538.2" width="126.0" height="270.0" rx="21.6" fill="#d9d9e2" stroke="#ffffff" stroke-width="1.5" opacity="0.5"/>
-<text x="820.8" y="682.6" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">B</text>
-<rect x="887.4" y="538.2" width="190.8" height="104.4" rx="21.6" fill="#d9d9e2" stroke="#ffffff" stroke-width="1.5" opacity="0.5"/>
-<text x="982.8" y="599.8" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">A+R</text>
-<rect x="757.8" y="444.6" width="320.4" height="90.0" rx="21.6" fill="#d9d9e2" stroke="#ffffff" stroke-width="1.5" opacity="0.5"/>
-<text x="918.0" y="499.0" fill="#24242c" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">R</text>
-<rect x="511.2" y="522.0" width="122.4" height="90.0" rx="21.6" fill="#8d8d99" stroke="#b5b5c0" stroke-width="1.5" opacity="0.9"/>
-<text x="572.4" y="576.4" fill="#111116" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">L</text>
-<rect x="1.8" y="204.3" width="385.2" height="603.9" rx="21.6" fill="#7fa8ff" stroke="#9bbcff" stroke-width="1.5" opacity="0.22"/>
-<text x="194.4" y="515.6" fill="#c4d6ff" font-size="26.0" font-weight="600" text-anchor="middle" opacity="1.0">STEER</text>
-<circle cx="446.4" cy="43.2" r="27.8" fill="#6e6e7a" stroke="#9a9aa6" stroke-width="1.5" opacity="0.9"/>
-<text x="446.4" y="51.6" fill="#f2f2f6" font-size="23.4" font-weight="600" text-anchor="middle" opacity="1.0">X</text>
-<circle cx="540.0" cy="43.2" r="27.8" fill="#6e6e7a" stroke="#9a9aa6" stroke-width="1.5" opacity="0.9"/>
-<text x="540.0" y="51.6" fill="#f2f2f6" font-size="23.4" font-weight="600" text-anchor="middle" opacity="1.0">+</text>
-<circle cx="633.6" cy="43.2" r="27.8" fill="#6e6e7a" stroke="#9a9aa6" stroke-width="1.5" opacity="0.9"/>
-<text x="633.6" y="51.6" fill="#f2f2f6" font-size="23.4" font-weight="600" text-anchor="middle" opacity="1.0">⌂</text>
-<text x="12" y="800.0" fill="#8888a0" font-size="13">Racing - iPad 9th gen - stacked</text>
+<rect x="0.00" y="0.00" width="1080.00" height="810.00" fill="none" stroke="#2a2a33" stroke-dasharray="6 6"/>
+<rect x="180.00" y="0.00" width="720.00" height="405.00" fill="#23324a"/>
+<text x="540.00" y="202.50" fill="#4d6690" font-size="22" text-anchor="middle">TV</text>
+<rect x="180.00" y="405.00" width="720.00" height="405.00" fill="#23324a"/>
+<text x="540.00" y="607.50" fill="#4d6690" font-size="22" text-anchor="middle">GamePad</text>
+<g opacity="0.850">
+<rect x="879.40" y="638.20" width="190.80" height="162.00" rx="18.00" fill="#CCCCCC" fill-opacity="0.550" filter="url(#sh0)"/>
+<rect x="879.90" y="638.70" width="189.80" height="161.00" rx="17.50" fill="none" stroke="#E4E4EA" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.900"/>
+<rect x="881.30" y="640.10" width="187.00" height="158.20" rx="16.10" fill="none" stroke="url(#g1)" stroke-width="1.80" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="974.80" y="727.84" fill="#1F1F1F" font-size="24.00" font-weight="600" text-anchor="middle">A</text>
+<rect x="749.80" y="530.20" width="126.00" height="270.00" rx="18.00" fill="#CCCCCC" fill-opacity="0.550" filter="url(#sh0)"/>
+<rect x="750.30" y="530.70" width="125.00" height="269.00" rx="17.50" fill="none" stroke="#E4E4EA" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.900"/>
+<rect x="751.70" y="532.10" width="122.20" height="266.20" rx="16.10" fill="none" stroke="url(#g2)" stroke-width="1.80" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="812.80" y="673.84" fill="#1F1F1F" font-size="24.00" font-weight="600" text-anchor="middle">B</text>
+<rect x="879.40" y="530.20" width="190.80" height="104.40" rx="18.00" fill="#CCCCCC" fill-opacity="0.550" filter="url(#sh0)"/>
+<rect x="879.90" y="530.70" width="189.80" height="103.40" rx="17.50" fill="none" stroke="#E4E4EA" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.900"/>
+<rect x="881.30" y="532.10" width="187.00" height="100.60" rx="16.10" fill="none" stroke="url(#g3)" stroke-width="1.80" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="974.80" y="591.04" fill="#1F1F1F" font-size="24.00" font-weight="600" text-anchor="middle">A+R</text>
+<rect x="749.80" y="436.60" width="320.40" height="90.00" rx="18.00" fill="#CCCCCC" fill-opacity="0.550" filter="url(#sh0)"/>
+<rect x="750.30" y="437.10" width="319.40" height="89.00" rx="17.50" fill="none" stroke="#E4E4EA" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.900"/>
+<rect x="751.70" y="438.50" width="316.60" height="86.20" rx="16.10" fill="none" stroke="url(#g4)" stroke-width="1.80" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="910.00" y="490.24" fill="#1F1F1F" font-size="24.00" font-weight="600" text-anchor="middle">R</text>
+<rect x="507.20" y="514.00" width="122.40" height="90.00" rx="18.00" fill="#949494" fill-opacity="0.720" filter="url(#sh0)"/>
+<rect x="507.70" y="514.50" width="121.40" height="89.00" rx="17.50" fill="none" stroke="#E4E4EA" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.900"/>
+<rect x="509.10" y="515.90" width="118.60" height="86.20" rx="16.10" fill="none" stroke="url(#g5)" stroke-width="1.80" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="568.40" y="567.64" fill="#0D0D0D" font-size="24.00" font-weight="600" text-anchor="middle">L</text>
+<rect x="9.80" y="204.30" width="377.20" height="595.90" rx="18.00" fill="#7FA8FF" fill-opacity="0.170" stroke="#7FA8FF" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.450"/>
+<text x="198.40" y="507.65" fill="#DCE7FF" font-size="15.00" font-weight="600" text-anchor="middle" fill-opacity="0.900">STEER</text>
+<circle cx="446.40" cy="43.20" r="27.83" fill="#666666" fill-opacity="0.800" filter="url(#sh0)"/>
+<circle cx="446.40" cy="43.20" r="27.33" fill="none" stroke="#E4E4EA" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.900"/>
+<circle cx="446.40" cy="43.20" r="25.99" fill="none" stroke="url(#g6)" stroke-width="1.67" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="446.40" y="51.62" fill="#FFFFFF" font-size="23.38" font-weight="600" text-anchor="middle">X</text>
+<circle cx="540.00" cy="43.20" r="27.83" fill="#666666" fill-opacity="0.800" filter="url(#sh0)"/>
+<circle cx="540.00" cy="43.20" r="27.33" fill="none" stroke="#E4E4EA" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.900"/>
+<circle cx="540.00" cy="43.20" r="25.99" fill="none" stroke="url(#g7)" stroke-width="1.67" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M529.98 43.20 L550.02 43.20" fill="none" stroke="#FFFFFF" stroke-width="4.73" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M540.00 33.18 L540.00 53.22" fill="none" stroke="#FFFFFF" stroke-width="4.73" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="633.60" cy="43.20" r="27.83" fill="#666666" fill-opacity="0.800" filter="url(#sh0)"/>
+<circle cx="633.60" cy="43.20" r="27.33" fill="none" stroke="#E4E4EA" stroke-width="1.00" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.900"/>
+<circle cx="633.60" cy="43.20" r="25.99" fill="none" stroke="url(#g8)" stroke-width="1.67" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M619.13 43.34 L633.60 28.87 L648.07 43.34 L644.02 43.34 L644.02 55.64 L636.49 55.64 L636.49 47.69 L630.71 47.69 L630.71 55.64 L623.18 55.64 L623.18 43.34 Z" fill="#FFFFFF"/>
+</g>
+<text x="12" y="800.00" fill="#8888a0" font-size="13">Racing - iPad 9th gen - stacked</text>
 </svg>

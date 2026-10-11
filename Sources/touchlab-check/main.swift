@@ -1815,5 +1815,148 @@ do {
     check((r2.sticks[.left] ?? .zero) != .zero, "default stick: landing off-centre is a push, as before")
 }
 
+
+// MARK: Classic look (PadStyle) and Racing item/edge options
+
+do {
+    let ids = ["zone", "float", "adaptive", "frame", "racing"]
+    for id in ids {
+        check(PadStyle.appliesTo(id), "style: \(id) uses the shared look")
+        for device in TargetDevice.all {
+            for display in TargetDevice.Display.allCases {
+                let ctx = device.context(display)
+                let engine = PadEngine(scheme: SchemeCatalog.make(id), output: Recorder(), context: ctx)
+                let els = engine.render()
+                let base = PadStyle.scene(elements: els, size: ctx.size)
+                check(!base.primitives.isEmpty, "style: \(id) / \(device.name): empty scene")
+                // Every primitive stays finite and on a sane canvas.
+                var finite = true
+                for p in base.primitives {
+                    switch p.shape {
+                    case .circle(let c, let r): finite = finite && c.x.isFinite && c.y.isFinite && r >= 0
+                    case .rect(let r, let cr): finite = finite && r.width >= 0 && r.height >= 0 && cr >= 0
+                    case .path(let cmds): finite = finite && !cmds.isEmpty
+                    }
+                }
+                check(finite, "style: \(id) / \(device.name) / \(display.rawValue): bad primitive")
+                if device.name == "iPhone 16", display == .single {
+                    for preset in ShowcaseColourPreset.allCases {
+                        check(PadStyle.scene(elements: els, size: ctx.size, look: PadStyle.look(preset)) != base,
+                              "style: \(id) preset \(preset.rawValue) changes the look")
+                    }
+                }
+            }
+        }
+    }
+    check(!PadStyle.appliesTo("arc") && !PadStyle.appliesTo("showcase"), "style: Arc and Showcase keep their own looks")
+    check(PadStyle.cornerRadius(width: 200, height: 40) == 40 * 0.26 && PadStyle.cornerRadius(width: 900, height: 900) == 18,
+          "style: one corner rule")
+    // Pressed looks different from idle for every role.
+    let c = CGPoint(x: 50, y: 50)
+    for (role, shape) in [(RenderElement.Role.face, PadShape.circle(center: c, radius: 30)),
+                          (.shoulder, .roundedRect(CGRect(x: 0, y: 0, width: 80, height: 40), cornerRadius: 10)),
+                          (.system, .circle(center: c, radius: 20)), (.dpad, .roundedRect(CGRect(x: 0, y: 0, width: 40, height: 40), cornerRadius: 10)),
+                          (.pedal, .roundedRect(CGRect(x: 0, y: 0, width: 80, height: 90), cornerRadius: 10)),
+                          (.dot, .circle(center: c, radius: 12)), (.stickKnob, .circle(center: c, radius: 30))] {
+        for preset in PadStyle.choices {
+            let off = PadStyle.scene(elements: [RenderElement(shape: shape, role: role, label: "A")], size: CGSize(width: 100, height: 100), look: PadStyle.look(preset))
+            let on = PadStyle.scene(elements: [RenderElement(shape: shape, role: role, label: "A", lit: true)], size: CGSize(width: 100, height: 100), look: PadStyle.look(preset))
+            check(off != on, "style: \(role) held reads differently (\(PadStyle.name(preset)))")
+        }
+    }
+    check(PadSettings().colourPreset == nil, "style: default look is Classic")
+    check(PadStyle.look(nil).lit != nil && PadStyle.look(.wiiUWhite).lit == nil, "style: Classic keeps its yellow, presets use the Showcase press")
+}
+
+for placement in RacingPad.ItemPlacement.allCases {
+    for large in [false, true] {
+        for tilt in [false, true] {
+            let options = RacingPad.Options(tilt: tilt, itemPlacement: placement, largeItem: large)
+            for device in TargetDevice.all {
+                for display in TargetDevice.Display.allCases {
+                    let scheme = RacingPad(options: options)
+                    let ctx = device.context(display)
+                    scheme.layout(ctx)
+                    let where_ = "Racing \(placement)/large=\(large)/tilt=\(tilt) / \(device.name) / \(display.rawValue)"
+                    check(LayoutCheck.problems(scheme.controls, in: ctx.safeBounds).isEmpty,
+                          "\(where_): \(LayoutCheck.problems(scheme.controls, in: ctx.safeBounds).joined(separator: "; "))")
+                    let item = scheme.controls.first { $0.button == .l }
+                    check(item != nil, "\(where_): no item button")
+                    if let item, device.size.width > device.size.height, placement != .centre {
+                        // Off the centre, the item is either above the steering area or above the pedals, never over a pedal.
+                        let box = item.shape.boundingBox
+                        let overPedal = scheme.controls.contains { c in
+                            if case .pedal = c.kind { return c.shape.boundingBox.intersects(box) }
+                            return false
+                        }
+                        check(!overPedal, "\(where_): item over a pedal")
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Racing's controls leave the screen edge clear but still catch a touch right at it.
+do {
+    let ctx = ipad.context(.single)
+    let pad = RacingPad()
+    pad.layout(ctx)
+    let a = pad.controls.first { if case .pedal(let s) = $0.kind { return s == [.a] }; return false }!
+    let box = a.shape.boundingBox
+    check(box.maxX < ctx.safeBounds.maxX && box.maxY < ctx.safeBounds.maxY, "racing: accelerate stops short of the screen edge")
+    check(pad.claims(CGPoint(x: ctx.safeBounds.maxX - 0.5, y: box.midY)), "racing: but the edge itself still presses it")
+    let (_, steer) = steerSpec(pad)
+    check(steer.minX > ctx.safeBounds.minX && pad.claims(CGPoint(x: ctx.safeBounds.minX + 0.5, y: steer.midY)),
+          "racing: steering area clears the edge and still takes a touch at it")
+}
+
+// Glyphs are drawn shapes: + is a horizontal and a vertical stroke, - one horizontal, home a filled house.
+do {
+    func strokes(_ label: String) -> [(CGRect)] {
+        let c = CGPoint(x: 50, y: 50)
+        let sc = PadStyle.scene(elements: [RenderElement(shape: .circle(center: c, radius: 20), role: .system, label: label)],
+                                size: CGSize(width: 100, height: 100))
+        return sc.primitives.compactMap { p in
+            guard case .path(let cmds) = p.shape, p.stroke != nil, p.fill == nil else { return nil }
+            let pts = cmds.compactMap { cmd -> CGPoint? in
+                switch cmd { case .move(let a), .line(let a): return a; default: return nil }
+            }
+            guard let f = pts.first else { return nil }
+            return pts.reduce(CGRect(origin: f, size: .zero)) { $0.union(CGRect(origin: $1, size: .zero)) }
+        }
+    }
+    let plus = strokes("+"), minus = strokes("\u{2212}")
+    check(plus.count == 2, "glyph: + draws two strokes, got \(plus.count)")
+    check(plus.contains { $0.height == 0 && $0.width > 5 } && plus.contains { $0.width == 0 && $0.height > 5 }, "glyph: + has one horizontal and one vertical stroke")
+    check(minus.count == 1 && minus[0].height == 0 && minus[0].width > 5, "glyph: minus is one horizontal stroke")
+    let home = PadStyle.scene(elements: [RenderElement(shape: .circle(center: CGPoint(x: 50, y: 50), radius: 20), role: .system, label: "\u{2302}")],
+                              size: CGSize(width: 100, height: 100))
+    check(home.primitives.contains { if case .path(let c) = $0.shape { return c.count == 12 && $0.fill != nil }; return false }, "glyph: home is a filled house")
+    for (label, n) in [("\u{25B2}", 0), ("\u{25BC}", 1), ("\u{25C0}", 2), ("\u{25B6}", 3)] {
+        let sc = PadStyle.scene(elements: [RenderElement(shape: .roundedRect(CGRect(x: 30, y: 30, width: 40, height: 40), cornerRadius: 8), role: .dpad, label: label)],
+                                size: CGSize(width: 100, height: 100))
+        let tri = sc.primitives.last
+        guard let tri, case .path(let cmds) = tri.shape, case .move(let apex) = cmds[0] else { check(false, "glyph: arrow \(n) missing"); continue }
+        let dx = apex.x - 50, dy = apex.y - 50
+        let ok = [dy < -1 && abs(dx) < 0.01, dy > 1 && abs(dx) < 0.01, dx < -1 && abs(dy) < 0.01, dx > 1 && abs(dy) < 0.01][n]
+        check(ok, "glyph: arrow \(label) points the right way")
+    }
+    // Every scheme, every device: each + and minus on screen is drawn with the right stroke count.
+    for id in ["zone", "float", "adaptive", "frame", "racing"] {
+        for device in TargetDevice.all {
+            let ctx = device.context(.single)
+            let engine = PadEngine(scheme: SchemeCatalog.make(id), output: Recorder(), context: ctx)
+            let els = engine.render()
+            let sc = PadStyle.scene(elements: els, size: ctx.size)
+            let wantStrokes = els.filter { $0.role == .system && $0.label == "+" }.count * 2 + els.filter { $0.role == .system && $0.label == "\u{2212}" }.count
+            let have = sc.primitives.filter { if case .path = $0.shape { return $0.stroke != nil && $0.fill == nil && $0.strokeWidth > 1.5 && $0.text == nil }; return false }.count
+            // d-pad rim strokes are circles/rects, not paths, so every stroked path of this kind is a glyph stroke.
+            check(have == wantStrokes, "glyph: \(id) / \(device.name): \(have) glyph strokes, expected \(wantStrokes)")
+        }
+    }
+}
+
+
 print("\(passes) passed, \(failures) failed")
 exit(Int32(min(failures, 125)))

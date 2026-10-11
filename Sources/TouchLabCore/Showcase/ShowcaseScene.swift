@@ -142,7 +142,7 @@ struct SceneBuilder {
     init(colours: ShowcaseColourFile) { self.colours = colours }
 
     // Rim stops: lit from above while up, from below while held.
-    private func rim(_ fill: ShowcaseRGBA, pressed: Bool) -> ShowcasePaint {
+    func rim(_ fill: ShowcaseRGBA, pressed: Bool) -> ShowcasePaint {
         let light = fill.isLight
         let hi = ShowcaseRGBA.white.withAlpha(light ? 0.85 : 0.30)
         let lo = ShowcaseRGBA.black.withAlpha(light ? 0.16 : 0.45)
