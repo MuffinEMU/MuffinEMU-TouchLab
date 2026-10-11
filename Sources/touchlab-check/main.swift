@@ -1540,5 +1540,7 @@ do {
     }
 }
 
+runArcPolishChecks()
+
 print("\(passes) passed, \(failures) failed")
 exit(Int32(min(failures, 125)))
