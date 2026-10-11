@@ -92,6 +92,17 @@ public final class TouchPadView: UIView {
                                                name: UIApplication.willResignActiveNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(becameActive),
                                                name: UIApplication.didBecomeActiveNotification, object: nil)
+        // Any other way the app or this window can stop being the one in the player's hand:
+        // backgrounding, the scene going away or inactive (iPad windows, Stage Manager), another
+        // window (a system alert) taking key.
+        for name in [UIApplication.didEnterBackgroundNotification, UIScene.willDeactivateNotification,
+                     UIScene.didDisconnectNotification, UIScene.didEnterBackgroundNotification] {
+            NotificationCenter.default.addObserver(self, selector: #selector(sceneLeft(_:)), name: name, object: nil)
+        }
+        NotificationCenter.default.addObserver(self, selector: #selector(sceneBack(_:)),
+                                               name: UIScene.didActivateNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(windowLostKey(_:)),
+                                               name: UIWindow.didResignKeyNotification, object: nil)
     }
 
     @available(*, unavailable)
@@ -123,6 +134,7 @@ public final class TouchPadView: UIView {
 
     public override func didMoveToWindow() {
         super.didMoveToWindow()
+        impact.prepare()
         relayout()
         updateAmbient()
     }
@@ -164,7 +176,10 @@ public final class TouchPadView: UIView {
 
     public override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         // No other finger is down, so anything the engine still holds is a leaked touch whose end never arrived.
-        if let all = event?.allTouches, all.count == touches.count { engine.cancelAll() }
+        if let all = event?.allTouches {
+            if all.count == touches.count { engine.cancelAll() }
+            reconcile(with: all)
+        }
         for t in touches {
             (engine.scheme as? ArcPad)?.contactRadius = t.majorRadius
             engine.began(id(t), at: t.location(in: self), time: t.timestamp)
@@ -186,7 +201,14 @@ public final class TouchPadView: UIView {
 
     public override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         for t in touches { engine.ended(id(t), at: t.location(in: self), time: t.timestamp) }
+        if let all = event?.allTouches { reconcile(with: all) }
         changed()
+    }
+
+    /// Anything the engine holds for a finger the system no longer lists as down is released.
+    private func reconcile(with all: Set<UITouch>) {
+        let live = Set(all.filter { $0.phase != .ended && $0.phase != .cancelled }.map(id))
+        engine.reconcile(live: live)
     }
 
     public override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -213,7 +235,34 @@ public final class TouchPadView: UIView {
         changed()
     }
 
-    @objc private func becameActive() { updateAmbient() }
+    @objc private func becameActive() {
+        impact.prepare()
+        updateAmbient()
+    }
+
+    /// A scene or window notification: drop everything, but only when it is ours.
+    @objc private func sceneLeft(_ note: Notification) {
+        if let scene = note.object as? UIScene, scene !== window?.windowScene { return }
+        dropAll()
+    }
+
+    @objc private func sceneBack(_ note: Notification) {
+        guard let scene = note.object as? UIScene, scene === window?.windowScene else { return }
+        becameActive()
+    }
+
+    /// Another window took key (a system alert): fingers go, the game keeps what it was holding for the player.
+    @objc private func windowLostKey(_ note: Notification) {
+        guard let other = note.object as? UIWindow, other === window else { return }
+        engine.cancelAll()
+        changed()
+    }
+
+    // A pad that is hidden or switched off mid-press must not keep what the finger held.
+    public override var isHidden: Bool { didSet { if isHidden { dropAll() } } }
+    public override var isUserInteractionEnabled: Bool {
+        didSet { if !isUserInteractionEnabled { dropAll() } }
+    }
 
     /// Turns what the pad holds for the player on or off with whether the pad is live, and
     /// runs the motion sensor only while the scheme steers from it.
@@ -238,6 +287,8 @@ public final class TouchPadView: UIView {
         let pressed = engine.mixer.pressed
         if hapticsEnabled, !pressed.subtracting(lastPressed).isEmpty {
             impact.impactOccurred(intensity: 0.7)
+            // Warm the engine for the next press, so its haptic isn't late.
+            impact.prepare()
         }
         lastPressed = pressed
         updateDisplayLink()
