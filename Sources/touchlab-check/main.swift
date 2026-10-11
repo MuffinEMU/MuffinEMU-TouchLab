@@ -1635,5 +1635,51 @@ do {
           "racing: steering area clears the edge and still takes a touch at it")
 }
 
+// Glyphs are drawn shapes: + is a horizontal and a vertical stroke, - one horizontal, home a filled house.
+do {
+    func strokes(_ label: String) -> [(CGRect)] {
+        let c = CGPoint(x: 50, y: 50)
+        let sc = PadStyle.scene(elements: [RenderElement(shape: .circle(center: c, radius: 20), role: .system, label: label)],
+                                size: CGSize(width: 100, height: 100))
+        return sc.primitives.compactMap { p in
+            guard case .path(let cmds) = p.shape, p.stroke != nil, p.fill == nil else { return nil }
+            let pts = cmds.compactMap { cmd -> CGPoint? in
+                switch cmd { case .move(let a), .line(let a): return a; default: return nil }
+            }
+            guard let f = pts.first else { return nil }
+            return pts.reduce(CGRect(origin: f, size: .zero)) { $0.union(CGRect(origin: $1, size: .zero)) }
+        }
+    }
+    let plus = strokes("+"), minus = strokes("\u{2212}")
+    check(plus.count == 2, "glyph: + draws two strokes, got \(plus.count)")
+    check(plus.contains { $0.height == 0 && $0.width > 5 } && plus.contains { $0.width == 0 && $0.height > 5 }, "glyph: + has one horizontal and one vertical stroke")
+    check(minus.count == 1 && minus[0].height == 0 && minus[0].width > 5, "glyph: minus is one horizontal stroke")
+    let home = PadStyle.scene(elements: [RenderElement(shape: .circle(center: CGPoint(x: 50, y: 50), radius: 20), role: .system, label: "\u{2302}")],
+                              size: CGSize(width: 100, height: 100))
+    check(home.primitives.contains { if case .path(let c) = $0.shape { return c.count == 12 && $0.fill != nil }; return false }, "glyph: home is a filled house")
+    for (label, n) in [("\u{25B2}", 0), ("\u{25BC}", 1), ("\u{25C0}", 2), ("\u{25B6}", 3)] {
+        let sc = PadStyle.scene(elements: [RenderElement(shape: .roundedRect(CGRect(x: 30, y: 30, width: 40, height: 40), cornerRadius: 8), role: .dpad, label: label)],
+                                size: CGSize(width: 100, height: 100))
+        let tri = sc.primitives.last
+        guard let tri, case .path(let cmds) = tri.shape, case .move(let apex) = cmds[0] else { check(false, "glyph: arrow \(n) missing"); continue }
+        let dx = apex.x - 50, dy = apex.y - 50
+        let ok = [dy < -1 && abs(dx) < 0.01, dy > 1 && abs(dx) < 0.01, dx < -1 && abs(dy) < 0.01, dx > 1 && abs(dy) < 0.01][n]
+        check(ok, "glyph: arrow \(label) points the right way")
+    }
+    // Every scheme, every device: each + and minus on screen is drawn with the right stroke count.
+    for id in ["zone", "float", "adaptive", "frame", "racing"] {
+        for device in TargetDevice.all {
+            let ctx = device.context(.single)
+            let engine = PadEngine(scheme: SchemeCatalog.make(id), output: Recorder(), context: ctx)
+            let els = engine.render()
+            let sc = PadStyle.scene(elements: els, size: ctx.size)
+            let wantStrokes = els.filter { $0.role == .system && $0.label == "+" }.count * 2 + els.filter { $0.role == .system && $0.label == "\u{2212}" }.count
+            let have = sc.primitives.filter { if case .path = $0.shape { return $0.stroke != nil && $0.fill == nil && $0.strokeWidth > 1.5 && $0.text == nil }; return false }.count
+            // d-pad rim strokes are circles/rects, not paths, so every stroked path of this kind is a glyph stroke.
+            check(have == wantStrokes, "glyph: \(id) / \(device.name): \(have) glyph strokes, expected \(wantStrokes)")
+        }
+    }
+}
+
 print("\(passes) passed, \(failures) failed")
 exit(Int32(min(failures, 125)))
