@@ -1441,6 +1441,122 @@ do {
         }
     }
     print("showcase: \(clears) clear, \(overlays) overlay; smallest \(Int(smallest.0 * 100))% of life size (\(smallest.1))")
+    check(clears >= 36, "showcase: Fit clears the picture in \(clears) of 48 cases, expected at least 36")
+    // Fit never shrinks a button under the touch size, however it packs the pad.
+    for device in TargetDevice.showcaseReview {
+        for display in TargetDevice.Display.allCases {
+            for preset in ShowcaseLayoutPreset.allCases {
+                let pad = ShowcasePad(); pad.pointsPerInch = device.showcasePointsPerInch; pad.layoutPreset = preset
+                pad.layout(device.context(display))
+                guard pad.arrangement == .clear else { continue }
+                let where_ = "Showcase \(device.name) \(display.rawValue) \(preset.rawValue)"
+                for c in pad.controls {
+                    switch c.kind {
+                    case .button(let b) where c.role == .face || b == .home || c.role == .system:
+                        let d = c.shape.boundingBox.width
+                        let floor = c.role == .face ? pad.minimumUnit : pad.minimumUnit * (b == .home ? 1.04 : 0.68)
+                        check(d >= floor - 0.5, "\(where_): \(b) is \(d) pt, under \(floor)")
+                    case .dpad:
+                        check(c.shape.boundingBox.width >= 2.28 * pad.minimumUnit - 0.5, "\(where_): d-pad under the touch size")
+                    case .stick(let st, _, _):
+                        // Each stick keeps its own shoulders within reach.
+                        for sh in [PadButton.l, .zl, .r, .zr] where (sh == .l || sh == .zl) == (st == .left) {
+                            let sc = pad.controls.first { $0.button == sh }!.shape.center
+                            check(sc.distance(to: c.shape.center) <= 4.5 * pad.unitPoints, "\(where_): \(sh) strays from its stick")
+                        }
+                    default: break
+                    }
+                }
+            }
+        }
+    }
+    // Cases the old fitter gave up on now clear the picture, with + left of - above HOME.
+    for (name, display, preset) in [("iPhone SE", TargetDevice.Display.stacked, ShowcaseLayoutPreset.compact),
+                                    ("iPad Pro 13", .single, .native), ("iPad mini portrait", .stacked, .native),
+                                    ("iPad Pro 11 (A12Z) portrait", .stacked, .iPadPro2020)] {
+        let d = TargetDevice.showcaseReview.first { $0.name == name }!
+        let pad = ShowcasePad(); pad.pointsPerInch = d.showcasePointsPerInch; pad.layoutPreset = preset
+        pad.layout(d.context(display))
+        check(pad.arrangement == .clear, "showcase: \(name) \(display.rawValue) \(preset.rawValue) should clear the picture, got \(pad.arrangement)")
+        func at(_ b: PadButton) -> CGPoint { pad.controls.first { $0.button == b }!.shape.center }
+        check(at(.plus).x < at(.minus).x && abs(at(.plus).y - at(.minus).y) < 1, "showcase: \(name) + is left of - on one row")
+        check(at(.home).y > at(.plus).y || abs(at(.home).x - at(.plus).x) > 20, "showcase: \(name) HOME sits with the + / - pair")
+    }
+    // Shared settings: scale sizes the pad, opacity fades it and firms the look as it fades.
+    do {
+        let d = TargetDevice.all.first { $0.name.contains("A12Z") }!
+        func unit(_ scale: CGFloat) -> CGFloat {
+            var ctx = d.context(.stacked); ctx.scale = scale
+            let pad = ShowcasePad(); pad.pointsPerInch = 132; pad.layout(ctx); return pad.unitPoints
+        }
+        check(unit(0.8) < unit(1) - 1 && unit(1) <= unit(1.2) + 0.01, "showcase: the shared scale resizes the pad (\(unit(0.8)), \(unit(1)), \(unit(1.2)))")
+        let pad = ShowcasePad(); pad.pointsPerInch = 132; pad.layout(d.context(.stacked))
+        let def = pad.scene(pressed: [], sticks: [:])
+        check(abs(def.opacity - 0.94) < 1e-9 && pad.scene(pressed: [], sticks: [:], opacity: 1).opacity <= 1
+              && abs(pad.scene(pressed: [], sticks: [:], opacity: 0.3).opacity - 0.94 * 0.3 / 0.85) < 1e-9,
+              "showcase: scene opacity follows the shared opacity (\(def.opacity))")
+        let faint = pad.scene(pressed: [], sticks: [:], opacity: 0.3)
+        func maxShadow(_ s: ShowcaseScene) -> Double { s.primitives.compactMap(\.shadow?.opacity).max() ?? 0 }
+        check(maxShadow(faint) > maxShadow(def) + 0.05, "showcase: a faint pad gets a firmer shadow")
+        check(faint.primitives.count == def.primitives.count, "showcase: a faint pad keeps every control")
+    }
+    // Colours: every preset is a valid .muffinclr, readable, and distinct.
+    do {
+        var names = Set<String>()
+        for p in ShowcaseColourPreset.allCases {
+            let f = p.file
+            check(names.insert(f.name).inserted, "showcase: colour preset name \(f.name) is unique")
+            check((try? ShowcaseColourFile.decode(f.encoded())) == f && f.version == 1, "showcase: \(p.rawValue) is a version 1 .muffinclr")
+            // (Drawing nudges any glyph that is too faint for its fill; the presets added since the
+            // first three are expected to be readable as written.)
+            for id in ["A", "B", "X", "Y", "dpad", "plus", "L", "R", "stickL", "HOME"] where ![.wiiUWhite, .wiiUBlack, .superFamicom].contains(p) {
+                let c = ShowcaseRGBA.contrast(f.glyph(id), f.fill(id).withAlpha(1))
+                check(c >= 1.8, "showcase: \(p.rawValue) \(id) glyph contrast \(c)")
+            }
+        }
+        check(ShowcaseColourPreset.allCases.count >= 10, "showcase: colour presets")
+    }
+    // Press animation: eases down in ~60 ms and back in ~150 ms, snaps with Reduce Motion, settles.
+    do {
+        var a = ShowcasePressAnimator()
+        a.step(pressed: [], time: 0, reduceMotion: false)
+        check(!a.isAnimating && a.eased.isEmpty, "showcase: press animator starts idle")
+        a.step(pressed: [.a], time: 1, reduceMotion: false)       // first frame after a gap settles
+        check(a.eased[.a] == 1 && !a.isAnimating, "showcase: first frame is settled")
+        a.step(pressed: [], time: 1.016, reduceMotion: false)
+        let mid = a.eased[.a] ?? 0
+        check(mid > 0.5 && mid < 1 && a.isAnimating, "showcase: release eases (\(mid))")
+        a.step(pressed: [], time: 1.1, reduceMotion: false)
+        a.step(pressed: [], time: 1.2, reduceMotion: false)
+        check(a.eased[.a] == nil && !a.isAnimating, "showcase: release settles")
+        a.step(pressed: [.a], time: 1.216, reduceMotion: false)
+        let down = a.eased[.a] ?? 0
+        check(down > 0 && down < 1 && a.isAnimating, "showcase: press eases in (\(down))")
+        a.step(pressed: [.a], time: 1.3, reduceMotion: false)
+        check(a.eased[.a] == 1 && !a.isAnimating, "showcase: press settles")
+        var r = ShowcasePressAnimator()
+        r.step(pressed: [], time: 0, reduceMotion: true)
+        r.step(pressed: [.b], time: 0.016, reduceMotion: true)
+        check(r.eased[.b] == 1 && !r.isAnimating, "showcase: Reduce Motion snaps")
+        // The scene at an eased amount sits between up and held.
+        let d = TargetDevice.all.first { $0.name.contains("A12Z") }!
+        let pad = ShowcasePad(); pad.pointsPerInch = 132; pad.layout(d.context(.stacked))
+        let up = pad.scene(pressed: [], sticks: [:]), held = pad.scene(pressed: [.a], sticks: [:])
+        _ = pad.scene(pressed: [], sticks: [:], time: 10)
+        let mid2 = pad.scene(pressed: [.a], sticks: [:], time: 10.03)
+        check(pad.isAnimatingPress && mid2 != up && mid2 != held, "showcase: a half-pressed button looks half-pressed")
+        _ = pad.scene(pressed: [.a], sticks: [:], time: 10.5)
+        check(pad.scene(pressed: [.a], sticks: [:], time: 10.6) == held && !pad.isAnimatingPress, "showcase: settled animation equals the held look")
+        _ = pad.scene(pressed: [], sticks: [:], time: 11)
+        _ = pad.scene(pressed: [], sticks: [:], time: 11.5)
+        check(pad.scene(pressed: [], sticks: [:], time: 11.6) == up, "showcase: settled animation equals the up look")
+        // Glass.
+        pad.glass = true
+        let g = pad.scene(pressed: [], sticks: [:])
+        check(g != up && g.primitives.count > up.primitives.count, "showcase: glass changes the look")
+        check(g.primitives.allSatisfy { p in if case .vertical = p.fill { return true }; if case .solid = p.fill { return true }; return p.fill == nil },
+              "showcase: glass scene is plain data")
+    }
     // The GamePad stays a real touchscreen wherever Fit found a margin.
     do {
         let d = TargetDevice.all.first { $0.name.contains("A12Z") }!
