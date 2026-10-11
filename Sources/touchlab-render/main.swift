@@ -48,15 +48,16 @@ do {
     }
     func draw(_ device: TargetDevice, display: TargetDevice.Display, mode: ShowcaseLayout.DisplayMode,
               colour: ShowcaseColourPreset = .wiiUWhite, backdrop: ShowcaseSVG.Backdrop = .dark, demo: Bool = false,
-              name: String) throws {
+              glass: Bool = false, opacity: CGFloat = PadSettings.defaultOpacity, name: String) throws {
         let ctx = device.context(display)
         let pad = ShowcasePad()
         pad.pointsPerInch = device.showcasePointsPerInch
         pad.displayMode = mode
         pad.colourPreset = colour
+        pad.glass = glass
         let engine = PadEngine(scheme: pad, output: NullOutput(), context: ctx)
         if demo { ShowcaseDemo.press(engine, pad) }
-        let scene = pad.scene(pressed: engine.mixer.pressed, sticks: engine.mixer.sticks)
+        let scene = pad.scene(pressed: engine.mixer.pressed, sticks: engine.mixer.sticks, opacity: opacity)
         let rects = pad.pictureRect.map { [$0] } ?? ctx.videoRects
         let size = String(format: "%.0f%% of life size", Double(pad.lifeSizeFraction) * 100)
         let title = "Showcase - \(device.name) - \(mode == .native ? "native" : "fit \(display.rawValue) (\(pad.arrangement))") - \(size)"
@@ -83,6 +84,14 @@ do {
     try draw(pro, display: .stacked, mode: .fit, backdrop: .light, demo: true, name: "light-held-ipad-pro-11-fit")
     try draw(phone, display: .stacked, mode: .native, backdrop: .light, demo: true, name: "light-held-iphone-16-pro-max-native")
     try draw(pro, display: .stacked, mode: .fit, colour: .wiiUBlack, backdrop: .light, demo: true, name: "light-held-black-ipad-pro-11-fit")
+    // The glass look, and a faint pad (opacity 0.35) on dark and light pictures.
+    try draw(pro, display: .stacked, mode: .fit, demo: true, glass: true, name: "glass-held-ipad-pro-11-fit")
+    try draw(pro, display: .stacked, mode: .fit, colour: .midnight, backdrop: .light, demo: true, glass: true, name: "light-glass-midnight-ipad-pro-11-fit")
+    try draw(pro, display: .stacked, mode: .fit, demo: true, opacity: 0.35, name: "low-opacity-ipad-pro-11-fit")
+    try draw(pro, display: .stacked, mode: .fit, backdrop: .light, demo: true, opacity: 0.35, name: "light-low-opacity-ipad-pro-11-fit")
+    // Fit's packing where the old fitter floated over the picture.
+    let se = TargetDevice.showcaseReview.first { $0.name == "iPhone SE" }!
+    try draw(se, display: .stacked, mode: .fit, demo: true, name: "packed-iphone-se-fit-stacked")
 }
 // Options worth seeing next to the defaults.
 index += "<h2>Zone, large A</h2>"

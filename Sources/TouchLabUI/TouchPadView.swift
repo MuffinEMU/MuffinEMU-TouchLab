@@ -334,8 +334,12 @@ public final class TouchPadView: UIView {
         guard let g = UIGraphicsGetCurrentContext() else { return }
         // Showcase has its own look (shadow, rim, dish, octagonal gate), as a scene to draw.
         if let showcase = engine.scheme as? ShowcasePad {
-            ShowcaseDrawing.draw(showcase.scene(pressed: engine.litButtons(), sticks: engine.mixer.sticks),
-                                 in: g, opacity: controlOpacity)
+            ShowcaseDrawing.draw(showcase.scene(pressed: engine.litButtons(), sticks: engine.mixer.sticks,
+                                                opacity: controlOpacity, time: CACurrentMediaTime(),
+                                                reduceMotion: UIAccessibility.isReduceMotionEnabled),
+                                 in: g)
+            // A press still easing: draw again next frame.
+            if showcase.isAnimatingPress { DispatchQueue.main.async { [weak self] in self?.setNeedsDisplay() } }
             return
         }
         if PadStyle.appliesTo(engine.scheme.info.id) {
