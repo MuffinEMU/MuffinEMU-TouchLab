@@ -369,6 +369,7 @@ mounts it, with `else if isEditingControlLayout, padSystem == .touchLab`.)
   the pad's own teardown.
 - **Size** slider → `ControllerLayoutSettings.scaleKey` (same range as today, 0.6–1.6)
 - **Opacity** slider → `ControllerLayoutSettings.opacityKey`
+- **Stick feel (all TouchLab styles, both off by default):** "Stick follows thumb" → `TouchLabSettings.stickFollowKey`; "Relative stick" (centre where the thumb lands) → `TouchLabSettings.stickRelativeKey`.
 - **Float only:** Camera = Floating stick / Swipe → `TouchLabSettings.floatCameraKey`
 - **Adaptive only:** "Reset learned layout for this game" →
   `TouchLabSettings.resetAdaptive(gameID:)`

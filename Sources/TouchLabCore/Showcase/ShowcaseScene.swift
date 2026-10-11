@@ -108,7 +108,7 @@ extension ShowcasePad {
         // row, so nothing's shadow is cut by a neighbour drawn later.
         for (i, c) in controls.enumerated() {
             if case let .stick(stick, travel, _) = c.kind {
-                b.stick(stick, centre: c.shape.center, dish: travel, gate: gate, track: active[i], held: pressed.contains(stick == .left ? .stickL : .stickR))
+                b.stick(stick, centre: active[i]?.origin ?? c.shape.center, dish: travel, gate: gate, track: active[i], held: pressed.contains(stick == .left ? .stickL : .stickR))
             }
         }
         for c in controls {

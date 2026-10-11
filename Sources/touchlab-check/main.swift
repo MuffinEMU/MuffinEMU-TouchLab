@@ -1540,5 +1540,280 @@ do {
     }
 }
 
+// MARK: Engine: stuck inputs, press latency, multi-touch, catchment, stick feel
+
+/// Every scheme on every device and display, as a ready engine.
+func forEachEngine(_ body: (SchemeInfo, TargetDevice, TargetDevice.Display, PadEngine, Recorder, ControlScheme) -> Void) {
+    for info in SchemeCatalog.all {
+        for device in TargetDevice.all {
+            for display in TargetDevice.Display.allCases {
+                let r = Recorder()
+                let e = PadEngine(scheme: SchemeCatalog.make(info.id), output: r, context: device.context(display))
+                body(info, device, display, e, r, e.scheme as! ControlScheme)
+            }
+        }
+    }
+}
+func isPress(_ c: PadControl) -> Bool {
+    switch c.kind { case .button, .pedal: return true; default: return false }
+}
+func where_(_ info: SchemeInfo, _ d: TargetDevice, _ x: TargetDevice.Display) -> String { "\(info.id) / \(d.name) / \(x)" }
+/// Every press has exactly one release.
+func balanced(_ log: [String]) -> Bool {
+    var open: [String: Int] = [:]
+    for entry in log {
+        if entry == "releaseAll" { open = [:]; continue }
+        let name = String(entry.dropLast())
+        if entry.hasSuffix("+") { open[name, default: 0] += 1 } else if entry.hasSuffix("-") { open[name, default: 0] -= 1 }
+        if open[name]! < 0 || open[name]! > 1 { return false }
+    }
+    return open.values.allSatisfy { $0 == 0 }
+}
+
+// A press is decided on touch-down: held the moment `began` returns, with no tick, no time passing.
+var pressedOnDown = 0
+forEachEngine { info, device, display, e, r, s in
+    for c in s.controls where c.button != nil && c.priority == 1 && c.role != .dot {
+        e.began(1, at: c.shape.center, time: 0)
+        check(r.held.contains(c.button!), "press on touch-down: \(c.button!) on \(where_(info, device, display))")
+        pressedOnDown += 1
+        e.ended(1, at: c.shape.center, time: 0.001)
+        check(r.held.isEmpty, "release on touch-up: \(c.button!) on \(where_(info, device, display))")
+    }
+    check(balanced(r.log), "every press released exactly once on \(where_(info, device, display)): \(r.log.prefix(8))")
+}
+check(pressedOnDown > 1000, "press-on-touch-down was exercised widely (\(pressedOnDown))")
+
+// Gap-free catchment: between neighbours of one slide group or cluster, every point on the line
+// joining their centres presses something.
+var gapPairs = 0
+forEachEngine { info, device, display, e, r, s in
+    let u = e.context.unit
+    let items = s.controls.filter(isPress)
+    s.clusterOffsets = [:]
+    for (i, a) in items.enumerated() {
+        for b in items[(i + 1)...] where (a.group != 0 && a.group == b.group) || (a.cluster >= 0 && a.cluster == b.cluster) {
+            let ca = a.shape.center, cb = b.shape.center
+            guard max(a.shape.edgeDistance(to: cb), b.shape.edgeDistance(to: ca)) < u else { continue }
+            gapPairs += 1
+            for k in 0...20 {
+                let t = CGFloat(k) / 20
+                let p = CGPoint(x: ca.x + (cb.x - ca.x) * t, y: ca.y + (cb.y - ca.y) * t)
+                s.clusterOffsets = [:]      // Adaptive drifts a cluster toward a press; probe the layout as drawn
+                e.began(1, at: p, time: 0)
+                check(!r.held.isEmpty || e.mixer.contribution(for: 1)?.stick != nil, "no dead gap between \(a.label) and \(b.label) at \(p) on \(where_(info, device, display))")
+                e.ended(1, at: p, time: 0.01)
+            }
+        }
+    }
+}
+check(gapPairs > 300, "gap check covered neighbouring buttons (\(gapPairs) pairs)")
+
+// Bounded: a button's catchment ends within a modest distance of its drawn edge, so it never
+// reaches far into the GamePad touchscreen or the open screen.
+forEachEngine { info, device, display, e, r, s in
+    let u = e.context.unit
+    for c in s.controls where isPress(c) && c.role != .pedal {
+        check(c.reach <= 0.85 * u, "\(c.label) catchment reaches \(c.reach / u)u past its edge on \(where_(info, device, display))")
+    }
+}
+
+// Slide: a finger rolling between buttons of a slide group moves the press, in every scheme.
+var slides = 0
+forEachEngine { info, device, display, e, r, s in
+    var groups: [Int: [PadControl]] = [:]
+    for c in s.controls where c.button != nil && c.group != 0 { groups[c.group, default: []].append(c) }
+    for (_, members) in groups where members.count > 1 {
+        for from in members {
+            for to in members where to.button != from.button {
+                e.began(1, at: from.shape.center, time: 0)
+                e.moved(1, to: to.shape.center, time: 0.05)
+                check(r.held == [to.button!], "slide \(from.label)->\(to.label) leaves only \(to.label) held, got \(r.held) on \(where_(info, device, display))")
+                slides += 1
+                e.ended(1, at: to.shape.center, time: 0.1)
+            }
+        }
+    }
+    check(r.held.isEmpty && balanced(r.log), "slides leave nothing held and every press released once on \(where_(info, device, display))")
+}
+check(slides > 300, "slides were exercised (\(slides))")
+
+// Chords: a thumb on the seam between two chording buttons presses both.
+var chordsTried = 0
+forEachEngine { info, device, display, e, r, s in
+    let ch = s.controls.filter { $0.chords && $0.button != nil }
+    for (i, a) in ch.enumerated() {
+        for b in ch[(i + 1)...] where a.group == b.group {
+            let gap = max(a.shape.edgeDistance(to: b.shape.center), b.shape.edgeDistance(to: a.shape.center))
+            guard gap < 0.9 * e.context.unit, gap > 0 else { continue }
+            let mid = CGPoint(x: (a.shape.center.x + b.shape.center.x) / 2, y: (a.shape.center.y + b.shape.center.y) / 2)
+            if s.controls.contains(where: { $0.priority > 1 && $0.shape.edgeDistance(to: mid) <= $0.reach }) { continue }
+            s.clusterOffsets = [:]
+            e.began(1, at: mid, time: 0)
+            check(r.held == [a.button!, b.button!], "seam between \(a.label) and \(b.label) presses both, got \(r.held) on \(where_(info, device, display))")
+            chordsTried += 1
+            e.ended(1, at: mid, time: 0.1)
+        }
+    }
+}
+check(chordsTried > 100, "chords were exercised (\(chordsTried))")
+
+// Multi-touch: three fingers, two on one button, ended together or cancelled together.
+forEachEngine { info, device, display, e, r, s in
+    let btns = s.controls.filter { $0.button != nil && $0.priority == 1 && $0.role != .dot }
+    guard btns.count >= 3 else { return }
+    let w = where_(info, device, display)
+    // three fingers on three different, well-separated buttons
+    var chosen: [PadControl] = []
+    for c in btns where chosen.allSatisfy({ $0.shape.edgeDistance(to: c.shape.center) > 1.5 * e.context.unit }) { chosen.append(c) }
+    if chosen.count >= 3 {
+        for (i, c) in chosen.prefix(3).enumerated() { e.began(10 + i, at: c.shape.center, time: 0) }
+        check(r.held == Set(chosen.prefix(3).map { $0.button! }), "three fingers hold three buttons on \(w), got \(r.held)")
+        e.ended(11, at: chosen[1].shape.center, time: 0.1)
+        check(r.held == Set([chosen[0].button!, chosen[2].button!]), "lifting the middle finger leaves the others on \(w)")
+        e.cancelled(10, time: 0.1); e.cancelled(12, time: 0.1)
+        check(r.held.isEmpty, "cancelling two fingers in one event releases both on \(w)")
+        e.cancelled(10, time: 0.2); e.ended(12, at: .zero, time: 0.2)
+        check(balanced(r.log) && r.held.isEmpty, "a repeated end or cancel releases nothing twice on \(w): \(r.log)")
+    }
+    // two fingers on the same button: held until both lift
+    let b = btns[0]
+    e.began(20, at: b.shape.center, time: 1)
+    e.began(21, at: b.shape.center, time: 1)
+    e.ended(20, at: b.shape.center, time: 1.1)
+    check(r.held == [b.button!], "button stays held while a second finger is on it on \(w)")
+    e.ended(21, at: b.shape.center, time: 1.2)
+    check(r.held.isEmpty && balanced(r.log), "button released only when both fingers lift on \(w)")
+}
+
+// Everything that can end a press early or late: release once and only once.
+forEachEngine { info, device, display, e, r, s in
+    guard let a = s.controls.first(where: { $0.button == .a }) ?? s.controls.first(where: { $0.button != nil && $0.priority == 1 }) else { return }
+    let w = where_(info, device, display)
+    // scheme switch mid-press
+    e.began(1, at: a.shape.center, time: 0)
+    e.setScheme(SchemeCatalog.make(info.id == "zone" ? "float" : "zone"))
+    check(r.held.isEmpty && balanced(r.log), "switching scheme mid-press releases it on \(w)")
+    e.ended(1, at: a.shape.center, time: 0.1)       // the old finger lifting later is harmless
+    check(r.held.isEmpty && balanced(r.log), "...and the late touch-up is harmless on \(w)")
+    e.setScheme(SchemeCatalog.make(info.id))
+    // rotation / resize mid-press
+    let before = e.context
+    e.began(2, at: e.scheme is ControlScheme ? (e.scheme as! ControlScheme).controls.first(where: { $0.button != nil && $0.priority == 1 })!.shape.center : .zero, time: 1)
+    var rotated = before; rotated.size = CGSize(width: before.size.height, height: before.size.width)
+    e.setContext(rotated)
+    check(r.held.isEmpty && balanced(r.log), "rotating mid-press releases it on \(w)")
+    e.moved(2, to: CGPoint(x: 100, y: 100), time: 1.1); e.ended(2, at: CGPoint(x: 100, y: 100), time: 1.2)
+    check(r.held.isEmpty && balanced(r.log), "...and the old finger moving and lifting does nothing on \(w)")
+    // backgrounding / view leaving the window / scene disconnect all end in cancelAll
+    e.setContext(before)
+    let again = (e.scheme as! ControlScheme).controls.first(where: { $0.button != nil && $0.priority == 1 })!.shape.center
+    e.began(3, at: again, time: 2)
+    e.began(4, at: again, time: 2)
+    e.cancelAll()
+    check(r.held.isEmpty && balanced(r.log) && e.heldTouches.isEmpty, "cancelAll releases every finger on \(w)")
+    e.ended(3, at: again, time: 2.1); e.cancelled(4, time: 2.1)
+    check(r.held.isEmpty && balanced(r.log), "...and the fingers' late ends are harmless on \(w)")
+}
+
+// A new finger that reuses a leaked finger's identity must not inherit or leave behind its press.
+do {
+    let (e, r, s) = engine("zone")
+    e.began(1, at: centre(s, .a), time: 0)
+    check(r.held == [.a], "setup")
+    var dead: CGPoint?
+    outer: for x in stride(from: CGFloat(5), to: e.context.size.width, by: 11) {
+        for y in stride(from: CGFloat(5), to: e.context.size.height, by: 11) where !e.claims(CGPoint(x: x, y: y)) {
+            dead = CGPoint(x: x, y: y); break outer
+        }
+    }
+    check(dead != nil, "found a point nothing claims")
+    e.began(1, at: dead!, time: 1)
+    check(r.held.isEmpty, "a reused finger identity landing on nothing drops the old press, held \(r.held)")
+    check(e.heldTouches.isEmpty, "...and is not held")
+    // a finger the system no longer lists
+    e.began(2, at: centre(s, .b), time: 2)
+    e.began(3, at: centre(s, .a), time: 2)
+    e.reconcile(live: [3])
+    check(r.held == [.a], "reconcile drops a finger the system no longer lists, held \(r.held)")
+    e.reconcile(live: [])
+    check(r.held.isEmpty && balanced(r.log), "reconcile with nothing live releases all")
+}
+
+// A stick keeps its finger across zones; a button finger leaving the pad lets go and re-presses on return.
+do {
+    let (e, r, s) = engine("zone")
+    let stick = stickControl(s, .left)!
+    let start = stick.0.shape.center + CGPoint(x: stick.travel * 0.6, y: 0)
+    e.began(1, at: start, time: 0)
+    e.moved(1, to: centre(s, .a), time: 0.1)
+    check(!r.held.contains(.a), "a finger on the stick sliding over A does not press A")
+    check(e.mixer.contribution(for: 1)?.stick == .left, "the stick keeps its finger")
+    e.ended(1, at: centre(s, .a), time: 0.2)
+    check(r.sticks[.left] == .zero || r.sticks[.left] == nil, "stick centres when its finger lifts")
+
+    e.began(2, at: centre(s, .a), time: 1)
+    e.moved(2, to: CGPoint(x: -400, y: -400), time: 1.1)
+    check(r.held.isEmpty, "a button finger sliding off the pad edge lets go")
+    e.moved(2, to: centre(s, .a), time: 1.2)
+    check(r.held == [.a], "...and presses again when it slides back")
+    e.ended(2, at: centre(s, .a), time: 1.3)
+    check(r.held.isEmpty && balanced(r.log), "...and releases once")
+}
+
+// Stick feel (opt-in): defaults are exactly the old behaviour; follow and relative are off.
+check(!StickTuning().followsThumb && !StickTuning().relativeCentre, "stick follow and relative centre default to off")
+check(StickTuning() == StickTuning(deadzone: 0.06, curve: 1, gate: .octagon), "default tuning is unchanged")
+for id in ["zone", "float", "frame", "showcase"] {
+    func run(_ tuning: StickTuning, _ offsets: [CGFloat]) -> (values: [StickValue], base: [CGPoint]) {
+        var ctx = ipad.context(.stacked); ctx.stick = tuning
+        let r = Recorder()
+        let e = PadEngine(scheme: SchemeCatalog.make(id), output: r, context: ctx)
+        let s = e.scheme as! ControlScheme
+        guard let (c, travel, floating) = stickControl(s, .left) else { return ([], []) }
+        let start = floating ? c.shape.center : c.shape.center + CGPoint(x: travel * 0.5, y: 0)
+        e.began(1, at: start, time: 0)
+        var values = [e.mixer.sticks[.left] ?? .zero]
+        for (i, o) in offsets.enumerated() {
+            e.moved(1, to: start + CGPoint(x: o * travel, y: 0), time: Double(i + 1) * 0.01)
+            values.append(e.mixer.sticks[.left] ?? .zero)
+        }
+        let base = s.render(pressed: [], sticks: e.mixer.sticks).filter { $0.role == .stickBase || $0.role == .dot }
+            .map { $0.shape.center }
+        return (values, base)
+    }
+    let plain = run(StickTuning(), [1, 2, 3, 2])
+    guard plain.values.count == 5 else { continue }
+    // default: behaves as the plain maths says
+    check(plain.values[3].magnitude > 0.99 && plain.values[4].magnitude > 0.99, "\(id): by default a thumb pushed past the ring and back a little stays at full")
+    var follow = StickTuning(); follow.followsThumb = true
+    let f = run(follow, [1, 2, 3, 2])
+    check(f.values[3].magnitude > 0.99, "\(id): follow, pushed past the ring: full output")
+    check(f.values[4].magnitude < 0.4, "\(id): follow, thumb back one travel: the base came along so the stick eases off, got \(f.values[4].magnitude)")
+    check(f.base != plain.base, "\(id): follow moves the drawn base")
+}
+do {
+    var rel = StickTuning(); rel.relativeCentre = true
+    var ctx = ipad.context(.stacked); ctx.stick = rel
+    let r = Recorder()
+    let e = PadEngine(scheme: SchemeCatalog.make("zone"), output: r, context: ctx)
+    let s = e.scheme as! ControlScheme
+    let (c, travel, _) = stickControl(s, .left)!
+    let land = c.shape.center + CGPoint(x: travel * 0.7, y: travel * 0.3)
+    e.began(1, at: land, time: 0)
+    check((r.sticks[.left] ?? .zero) == .zero, "relative stick: landing off-centre is not a push")
+    e.moved(1, to: land + CGPoint(x: travel, y: 0), time: 0.1)
+    check(near(r.sticks[.left]?.x ?? 0, 1, 0.01), "relative stick: full output one travel from where it landed")
+    let drawn = s.render(pressed: [], sticks: e.mixer.sticks).first { $0.role == .stickBase }
+    check(drawn?.shape.center == land, "relative stick: the ring is drawn where the thumb landed")
+    e.ended(1, at: land, time: 0.2)
+    check(s.render(pressed: [], sticks: [:]).first { $0.role == .stickBase }?.shape.center == c.shape.center, "relative stick: the ring returns to its place on release")
+    // the same landing without the option is a push
+    let (e2, r2, s2) = engine("zone")
+    let c2 = stickControl(s2, .left)!
+    e2.began(1, at: c2.0.shape.center + CGPoint(x: c2.travel * 0.7, y: c2.travel * 0.3), time: 0)
+    check((r2.sticks[.left] ?? .zero) != .zero, "default stick: landing off-centre is a push, as before")
+}
+
 print("\(passes) passed, \(failures) failed")
 exit(Int32(min(failures, 125)))

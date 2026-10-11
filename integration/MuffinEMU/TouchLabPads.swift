@@ -26,6 +26,10 @@ enum TouchLabSettings {
 
     /// Float's right side: "stick" (floating camera stick) or "swipe".
     static let floatCameraKey = "muffin.touchlab.float.camera"
+    /// Stick feel, both off by default. Follow: a thumb pushed past the ring takes the base with it.
+    /// Relative: a fixed stick's centre is wherever the thumb lands.
+    static let stickFollowKey = "muffin.touchlab.stick.follow"
+    static let stickRelativeKey = "muffin.touchlab.stick.relative"
     static let defaultFloatCamera = FloatPad.Camera.stick.rawValue
 
     /// Bumped by "Reset Adaptive layout" so the live pad rebuilds from the cleared data.
@@ -212,6 +216,8 @@ struct TouchLabPadOverlay: View {
     @AppStorage(ControllerLayoutSettings.stickGateKey) private var gateRaw = ControllerLayoutSettings.defaultStickGateRaw
     @AppStorage(TouchLabSettings.floatCameraKey) private var cameraRaw = TouchLabSettings.defaultFloatCamera
     @AppStorage(TouchLabSettings.adaptiveResetKey) private var adaptiveResets = 0
+    @AppStorage(TouchLabSettings.stickFollowKey) private var stickFollows = false
+    @AppStorage(TouchLabSettings.stickRelativeKey) private var stickRelative = false
 
     var body: some View {
         TouchPad(schemeID: schemeID,
@@ -226,7 +232,8 @@ struct TouchLabPadOverlay: View {
                  revision: revision,
                  enabled: enabled,
                  stickTuning: StickTuning(deadzone: deadzone, curve: curve,
-                                          gate: StickTuning.Gate(rawValue: gateRaw) ?? .octagon),
+                                          gate: StickTuning.Gate(rawValue: gateRaw) ?? .octagon,
+                                          followsThumb: stickFollows, relativeCentre: stickRelative),
                  rectSpace: .window,
                  extraInsets: Insets(top: topInset),
                  makeScheme: makeScheme)

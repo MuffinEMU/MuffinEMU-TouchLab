@@ -279,9 +279,10 @@ public final class ShowcasePad: ControlScheme {
                 }
             case let .stick(_, travel, _):
                 let t = active[i]
-                let base = c.shape.center
+                // The base stays put unless a finger moved it (relative centre, follow).
+                let base = t?.origin ?? c.shape.center
                 let knobR = travel * ShowcaseHardware.stickKnob / ShowcaseHardware.stickBase
-                out.append(RenderElement(shape: c.shape, role: .stickBase, lit: t != nil))
+                out.append(RenderElement(shape: .circle(center: base, radius: travel), role: .stickBase, lit: t != nil))
                 out.append(RenderElement(shape: .circle(center: base + (t?.knob ?? .zero) * Self.knobTravelRatio(travel, knobR), radius: knobR),
                                          role: .stickKnob, label: c.label, lit: false))
             default:
