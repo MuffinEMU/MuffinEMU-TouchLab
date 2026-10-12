@@ -118,6 +118,13 @@ public enum GamePadArrangement {
     }
 
     public static func build(_ ctx: LayoutContext, aScale: CGFloat = 1) -> [PadControl] {
+        buildWithUnit(ctx, aScale: aScale).controls
+    }
+
+    /// `build`, and the button size it settled on: `ctx.unit` unless the arrangement had to shrink
+    /// to fit. Offsets a player has set are measured in this unit, so they mean the same
+    /// thing on every screen.
+    public static func buildWithUnit(_ ctx: LayoutContext, aScale: CGFloat = 1) -> (controls: [PadControl], unit: CGFloat) {
         var u = ctx.unit
         for _ in 0..<8 {
             for inboard in [false, true] {
@@ -125,14 +132,14 @@ public enum GamePadArrangement {
                 if LayoutCheck.problems(set, in: ctx.safeBounds).isEmpty {
                     let spacing = fittingSpacing(ctx, u: u, sticksInboard: inboard, aScale: aScale)
                     let shoulder = fittingShoulderOffset(ctx, u: u, sticksInboard: inboard, stickSpacing: spacing, aScale: aScale)
-                    if spacing == 0 && shoulder == 0 { return set }
-                    return arrangement(ctx, u: u, sticksInboard: inboard,
-                                       stickSpacing: spacing, shoulderOffset: shoulder, aScale: aScale)
+                    if spacing == 0 && shoulder == 0 { return (set, u) }
+                    return (arrangement(ctx, u: u, sticksInboard: inboard,
+                                        stickSpacing: spacing, shoulderOffset: shoulder, aScale: aScale), u)
                 }
             }
             u *= 0.92
         }
-        return arrangement(ctx, u: u, sticksInboard: true, aScale: aScale)
+        return (arrangement(ctx, u: u, sticksInboard: true, aScale: aScale), u)
     }
 
     /// The largest shoulder drop the layout can honour in this context, in button widths: the
@@ -256,6 +263,16 @@ public enum GamePadArrangement {
         return low
     }
 
+    /// A stick whose knob is drawn at the size the arrangement fitted (`u`), not the size the
+    /// pad would have at full scale: when the arrangement shrinks to fit a small screen, the
+    /// knob and ring shrink with the catchment they belong to. Only in the polished look; with
+    /// Showcase style off the flat look keeps drawing what it always drew (a check pins it).
+    private static func stick(_ s: PadStick, at c: CGPoint, u: CGFloat, cluster: Int, fitted: Bool) -> PadControl {
+        var control = PadParts.stick(s, at: c, u: u, cluster: cluster)
+        if fitted { control.knob = PadParts.knobDiameter / 2 * u }
+        return control
+    }
+
     static func arrangement(_ ctx: LayoutContext, u: CGFloat, sticksInboard: Bool,
                             stickSpacing: CGFloat = 0, shoulderOffset: CGFloat = 0, aScale: CGFloat = 1) -> [PadControl] {
         let s = ctx.safeBounds
@@ -293,8 +310,8 @@ public enum GamePadArrangement {
             PadParts.shoulder(.l, l, u: u, group: PadParts.Group.leftShoulders, cluster: C.leftShoulders),
             PadParts.shoulder(.zr, zr, u: u, group: PadParts.Group.rightShoulders, cluster: C.rightShoulders),
             PadParts.shoulder(.r, r, u: u, group: PadParts.Group.rightShoulders, cluster: C.rightShoulders),
-            PadParts.stick(.left, at: sl, u: u, cluster: C.leftStick),
-            PadParts.stick(.right, at: sr, u: u, cluster: C.rightStick),
+            stick(.left, at: sl, u: u, cluster: C.leftStick, fitted: ctx.showcaseStyle),
+            stick(.right, at: sr, u: u, cluster: C.rightStick, fitted: ctx.showcaseStyle),
             PadParts.dpad(cl, u: u, cluster: C.dpad),
             PadParts.system(.minus, at: cl + CGPoint(x: 2.353 * u, y: -1.025 * u), u: u, cluster: C.dpad),
             PadParts.system(.plus, at: cr + CGPoint(x: -2.353 * u, y: -1.025 * u), u: u, cluster: C.face),
