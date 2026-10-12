@@ -550,7 +550,7 @@ open class ControlScheme: TouchScheme {
                 }
                 if let click {
                     out.append(RenderElement(shape: .circle(center: o, radius: clickRadius), role: .dot,
-                                             lit: pressed.contains(click)))
+                                             label: c.label, lit: pressed.contains(click)))
                 }
 
             case let .stick(_, travel, click):

@@ -13,6 +13,25 @@ private final class ZoneRecorder: PadOutput {
 }
 
 func runZoneChecks() {
+    // Both centre dots are named, L3 on the d-pad as R3 is on the diamond; the flat look names neither
+    // on the d-pad, as it always drew it. HOME keeps half a button clear of the bottom edge in the polished
+    // look (it sat 0.21 of a button off it, 7 pt on a phone with no home indicator).
+    for d in TargetDevice.all {
+        let ctx = d.context(.single)
+        var flat = ctx; flat.showcaseStyle = false
+        for (c, polished) in [(ctx, true), (flat, false)] {
+            let pad = ZonePad()
+            let e = PadEngine(scheme: pad, output: ZoneRecorder(), context: c)
+            let dots = e.render().filter { $0.role == .dot }
+            check(dots.contains { $0.label == "L3" } == polished, "zone \(d.name): the d-pad's centre dot is \(polished ? "" : "not ")named L3")
+            check(dots.contains { $0.label == "R3" }, "zone \(d.name): the diamond's centre dot is named R3")
+            guard let home = pad.controls.first(where: { $0.button == .home }),
+                  let face = pad.controls.first(where: { $0.button == .a }) else { continue }
+            let clearance = (c.safeBounds.maxY - home.shape.boundingBox.maxY) / face.shape.boundingBox.width
+            check(polished ? clearance >= 0.499 : abs(clearance - 0.2135) < 0.01, "zone \(d.name): HOME is \(clearance) of a button from the bottom edge")
+        }
+    }
+
     // A stick is drawn at the size it is caught at, on every device: the ring is the catchment
     // circle, and the knob fills the same share of it whatever size the arrangement settled on.
     for d in TargetDevice.all {
