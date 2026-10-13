@@ -1,3 +1,8 @@
+// MuffinEMU TouchLab — code by the MuffinEMU Development Team.
+// Copyright (c) 2026 MuffinEMU Development Team.
+// SPDX-License-Identifier: MPL-2.0
+// This notice must be kept in any copy or derivative (MPL-2.0 §3.4).
+
 // Stubs with the SAME shapes as MuffinEMU's real declarations (release/v6.4 @ 4e7223af). If
 // MuffinEMU changes one of these, update the stub to match - it is the contract the
 // drop-in file is compiled against.

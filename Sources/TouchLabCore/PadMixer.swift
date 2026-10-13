@@ -1,3 +1,8 @@
+// MuffinEMU TouchLab — code by the MuffinEMU Development Team.
+// Copyright (c) 2026 MuffinEMU Development Team.
+// SPDX-License-Identifier: MPL-2.0
+// This notice must be kept in any copy or derivative (MPL-2.0 §3.4).
+
 import CoreGraphics
 
 /// An opaque per-finger identity. UIKit's `UITouch` object is stable for the life of a

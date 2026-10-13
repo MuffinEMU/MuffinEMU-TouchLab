@@ -1,3 +1,8 @@
+# MuffinEMU TouchLab — code by the MuffinEMU Development Team.
+# Copyright (c) 2026 MuffinEMU Development Team.
+# SPDX-License-Identifier: MPL-2.0
+# This notice must be kept in any copy or derivative (MPL-2.0 §3.4).
+
 name: CI
 
 on:
@@ -30,6 +35,12 @@ jobs:
           [ -n "$X" ] || { echo "::error::no Xcode for ${{ matrix.xcode }} in: $ALL"; exit 1; }
           sudo xcode-select -s "$X"
           xcodebuild -version
+
+      - name: Every source file carries the MuffinEMU copyright header
+        run: |
+          missing=$(git ls-files '*.swift' '*.sh' | while read -r f; do
+            head -n 6 "$f" | grep -q 'Copyright (c) 2026 MuffinEMU Development Team.' || echo "$f"; done)
+          [ -z "$missing" ] || { echo "::error::missing the copyright header:"; echo "$missing"; exit 1; }
 
       - name: Behaviour and layout checks (macOS)
         run: swift run touchlab-check

@@ -1,0 +1,12 @@
+MuffinEMU TouchLab
+Copyright (c) 2026 MuffinEMU Development Team.
+
+The on-screen control schemes in this repository (Zone, Float, Adaptive, Frame, Arc,
+Racing and Showcase), with their layouts, input handling, calibration, looks, colour
+presets and preview art, are original work by the MuffinEMU Development Team, written
+for MuffinEMU. The Showcase files are ported from MuffinEMU's own source, which has the
+same copyright and licence.
+
+Licensed under the Mozilla Public License 2.0 (LICENSE.txt). Under MPL-2.0 section 3.4,
+any copy or modified version of these files must keep their copyright and licence
+notices. Under section 2.3, the licence grants no rights to the MuffinEMU name or logo.

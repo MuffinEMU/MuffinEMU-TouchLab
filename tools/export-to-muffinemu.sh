@@ -1,10 +1,15 @@
 #!/bin/bash
+# MuffinEMU TouchLab — code by the MuffinEMU Development Team.
+# Copyright (c) 2026 MuffinEMU Development Team.
+# SPDX-License-Identifier: MPL-2.0
+# This notice must be kept in any copy or derivative (MPL-2.0 §3.4).
+
 # Vendors this package into a MuffinEMU checkout as a local Swift package.
 #
 #   tools/export-to-muffinemu.sh /path/to/MuffinEMU
 #
 # Writes <MuffinEMU>/src/ios/Packages/MuffinTouchLab/ (replacing it wholesale) with the
-# package manifest, the four source targets and the licence, plus VENDORED.md recording
+# package manifest, the four source targets, the licence and NOTICE, plus VENDORED.md recording
 # exactly which TouchLab commit it came from. Refuses to export uncommitted or unpushed
 # work, so the recorded commit always exists on GitHub.
 set -euo pipefail
@@ -16,7 +21,7 @@ DEST="$DEST_ROOT/src/ios/Packages/MuffinTouchLab"
 [ -f "$DEST_ROOT/src/ios/project.yml" ] || { echo "error: $DEST_ROOT does not look like MuffinEMU (no src/ios/project.yml)"; exit 1; }
 
 cd "$SRC"
-if [ -n "$(git status --porcelain -- Package.swift Sources LICENSE.txt)" ]; then
+if [ -n "$(git status --porcelain -- Package.swift Sources LICENSE.txt NOTICE)" ]; then
   echo "error: TouchLab has uncommitted changes in Package.swift/Sources - commit and push first"; exit 1
 fi
 git fetch -q origin
@@ -29,7 +34,7 @@ swift run -q touchlab-check >/dev/null || { echo "error: touchlab-check fails - 
 
 rm -rf "$DEST"
 mkdir -p "$DEST"
-cp Package.swift LICENSE.txt "$DEST/"
+cp Package.swift LICENSE.txt NOTICE "$DEST/"
 cp -R Sources "$DEST/Sources"
 find "$DEST" -name .DS_Store -delete
 
@@ -42,6 +47,8 @@ The on-screen control schemes offered under Settings > On-screen Controls > Cont
 
 Do not edit these files here. Change them in MuffinEMU-TouchLab, run its checks, and
 re-export - otherwise the next export silently overwrites the change.
+
+Copyright (c) 2026 MuffinEMU Development Team, MPL-2.0. See NOTICE.
 
 Checks: \`swift run --package-path src/ios/Packages/MuffinTouchLab touchlab-check\`
 MD
