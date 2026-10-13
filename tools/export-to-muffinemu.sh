@@ -1,8 +1,8 @@
 #!/bin/bash
 # MuffinEMU TouchLab — code by the MuffinEMU Development Team.
 # Copyright (c) 2026 MuffinEMU Development Team.
-# SPDX-License-Identifier: MPL-2.0
-# This notice must be kept in any copy or derivative (MPL-2.0 §3.4).
+# SPDX-License-Identifier: GPL-3.0-only
+# This notice must be kept in any copy or modified version (GPL-3.0 §4 and §5).
 
 # Vendors this package into a MuffinEMU checkout as a local Swift package.
 #
@@ -48,7 +48,7 @@ The on-screen control schemes offered under Settings > On-screen Controls > Cont
 Do not edit these files here. Change them in MuffinEMU-TouchLab, run its checks, and
 re-export - otherwise the next export silently overwrites the change.
 
-Copyright (c) 2026 MuffinEMU Development Team, MPL-2.0. See NOTICE.
+Copyright (c) 2026 MuffinEMU Development Team, GPL-3.0-only. See NOTICE.
 
 Checks: \`swift run --package-path src/ios/Packages/MuffinTouchLab touchlab-check\`
 MD

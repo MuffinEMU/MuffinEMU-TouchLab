@@ -61,7 +61,7 @@ logic, not the feel. Try it on the iPad before any of it goes near MuffinEMU.
 ## License
 
 Copyright (c) 2026 MuffinEMU Development Team. TouchLab is original work by the MuffinEMU
-Development Team, made for MuffinEMU, and licensed under MPL-2.0 like MuffinEMU
-(see [LICENSE.txt](LICENSE.txt) and [NOTICE](NOTICE)). Every source file carries the copyright
-header, and copies or modified versions must keep it. The licence grants no rights to the MuffinEMU
-name or logo.
+Development Team, made for MuffinEMU, and licensed under the GNU GPL, version 3 only (see
+[LICENSE.txt](LICENSE.txt) and [NOTICE](NOTICE)). An app that includes it must be released under
+GPL-3.0 with its source, and every copy must keep the copyright headers. The licence grants no
+rights to the MuffinEMU name or logo. Versions up to commit 94c7b0d were released under MPL-2.0.

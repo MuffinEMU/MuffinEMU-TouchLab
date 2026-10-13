@@ -1,8 +1,8 @@
 // swift-tools-version: 5.9
 // MuffinEMU TouchLab — code by the MuffinEMU Development Team.
 // Copyright (c) 2026 MuffinEMU Development Team.
-// SPDX-License-Identifier: MPL-2.0
-// This notice must be kept in any copy or derivative (MPL-2.0 §3.4).
+// SPDX-License-Identifier: GPL-3.0-only
+// This notice must be kept in any copy or modified version (GPL-3.0 §4 and §5).
 
 import PackageDescription
 
