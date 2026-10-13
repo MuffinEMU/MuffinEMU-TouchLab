@@ -5,7 +5,7 @@
 
 name: TouchLab
 options:
-  bundleIdPrefix: com.kiddreads
+  bundleIdPrefix: com.muffinemu
   deploymentTarget:
     iOS: "15.0"
 packages:
@@ -41,7 +41,7 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.kiddreads.TouchLab
+        PRODUCT_BUNDLE_IDENTIFIER: com.muffinemu.TouchLab
         TARGETED_DEVICE_FAMILY: "1,2"
         MARKETING_VERSION: "0.1"
         CURRENT_PROJECT_VERSION: "1"
